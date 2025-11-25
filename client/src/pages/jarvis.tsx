@@ -7,6 +7,7 @@ import { TonyTracker } from '@/components/tony-tracker';
 import { VoiceButton } from '@/components/voice-button';
 import { TextInput } from '@/components/text-input';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { ParticlesBackground } from '@/components/particles-background';
 import { useToast } from '@/hooks/use-toast';
 import type { ChatMessage } from '@shared/schema';
 import { motion } from 'framer-motion';
@@ -186,9 +187,12 @@ export default function JarvisPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden">
+      {/* Animated particles background */}
+      <ParticlesBackground />
+      
       {/* Background effects */}
-      <div className="fixed inset-0 bg-gradient-to-br from-background via-background to-primary/5" />
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" />
+      <div className="fixed inset-0 bg-gradient-to-br from-background via-background to-primary/5" style={{ zIndex: 0 }} />
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" style={{ zIndex: 0 }} />
 
       <div className="relative z-10 container mx-auto px-2 md:px-4 py-3 md:py-6 max-w-7xl h-screen flex flex-col">
         {/* Header */}
@@ -232,9 +236,9 @@ export default function JarvisPage() {
             <WaveformOrb isActive={isRecording || isProcessing} isSpeaking={isSpeaking} />
           </motion.div>
 
-          {/* Chat Interface - Full height, scrollable */}
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className="flex-1 min-h-0">
+          {/* Chat Interface - Full height, prominent */}
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden">
               <ChatInterface 
                 messages={messages}
                 onTypingComplete={() => {
