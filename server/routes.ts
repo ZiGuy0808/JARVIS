@@ -426,7 +426,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Invalid filename' });
       }
 
-      const imagePath = path.join(__dirname, '../attached_assets/generated_images', filename);
+      // Use process.cwd() to get project root directory
+      const imagePath = path.join(process.cwd(), 'attached_assets/generated_images', filename);
       
       // Check if file exists
       if (!fs.existsSync(imagePath)) {
