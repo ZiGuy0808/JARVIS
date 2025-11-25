@@ -308,9 +308,6 @@ export default function JarvisPage() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Animated particles background */}
       <ParticlesBackground />
-      
-      {/* Background effects */}
-      <div className="fixed inset-0 bg-gradient-to-br from-background via-background to-primary/5 pointer-events-none" style={{ zIndex: 0 }} />
 
       <div className="relative z-10 w-full lg:h-screen lg:flex lg:flex-col flex flex-col">
         {/* Header */}
