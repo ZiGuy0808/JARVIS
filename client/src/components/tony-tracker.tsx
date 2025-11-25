@@ -7,9 +7,17 @@ import { useEffect, useRef, useState, Suspense, lazy } from 'react';
 
 const Globe = lazy(() => import('react-globe.gl'));
 
+interface StarkScan {
+  energyLevel: number;
+}
+
 export function TonyTracker() {
   const { data: activity } = useQuery<TonyActivity>({
     queryKey: ['/api/tony-activity'],
+  });
+
+  const { data: starkScan } = useQuery<StarkScan>({
+    queryKey: ['/api/stark-scan'],
   });
 
   const globeEl = useRef<any>();
@@ -17,6 +25,8 @@ export function TonyTracker() {
   const [globeReady, setGlobeReady] = useState(false);
   const [useGlobe, setUseGlobe] = useState(true);
   const [dimensions, setDimensions] = useState({ width: 400, height: 300 });
+
+  const batteryPercentage = starkScan?.energyLevel ?? 100;
 
   useEffect(() => {
     // Check WebGL support
@@ -56,6 +66,16 @@ export function TonyTracker() {
     const { lat, lng } = activity.coordinates;
     globeEl.current.pointOfView({ lat, lng, altitude: 2.5 }, 2000);
   }, [activity, globeReady]);
+
+  // Get Arc Reactor color based on battery level
+  const getArcReactorColor = (battery: number) => {
+    if (battery > 75) return 'rgba(0, 255, 200, 1)'; // Cyan - Full
+    if (battery > 50) return 'rgba(0, 255, 150, 1)'; // Bright Cyan - Good
+    if (battery > 25) return 'rgba(255, 200, 0, 1)'; // Orange - Low
+    return 'rgba(255, 100, 100, 1)'; // Red - Critical
+  };
+
+  const arcReactorColor = getArcReactorColor(batteryPercentage);
 
   const markerData = activity ? [{
     lat: activity.coordinates.lat,
@@ -114,28 +134,36 @@ export function TonyTracker() {
                 htmlElementsData={markerData}
                 htmlElement={(d: any) => {
                   const el = document.createElement('div');
+                  const battery = batteryPercentage;
+                  const glowIntensity = battery > 50 ? 12 : battery > 25 ? 8 : 4;
+                  const ringOpacity = Math.max(0.3, battery / 100);
+                  const outerGlowColor = `rgba(${battery > 75 ? '0, 255, 200' : battery > 50 ? '0, 255, 150' : battery > 25 ? '255, 200, 0' : '255, 100, 100'}, ${ringOpacity})`;
+                  const coreColor = arcReactorColor;
+                  
                   el.innerHTML = `
-                    <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 0 8px rgba(0,255,255,0.8)); animation: arc-reactor-pulse 2s ease-in-out infinite;">
+                    <svg width="50" height="50" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 0 ${glowIntensity}px ${coreColor}); animation: arc-reactor-pulse 2s ease-in-out infinite;">
                       <!-- Outer glow -->
-                      <circle cx="18" cy="18" r="16" fill="none" stroke="rgba(0,255,255,0.3)" stroke-width="2" opacity="0.6"/>
+                      <circle cx="18" cy="18" r="16" fill="none" stroke="${outerGlowColor}" stroke-width="2" opacity="${Math.max(0.2, battery / 150)}"/>
                       <!-- Outer ring -->
-                      <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(0,255,255,0.6)" stroke-width="1.5"/>
+                      <circle cx="18" cy="18" r="14" fill="none" stroke="${coreColor}" stroke-width="1.5" opacity="${ringOpacity * 0.8}"/>
                       <!-- Middle ring -->
-                      <circle cx="18" cy="18" r="10" fill="none" stroke="rgba(0,255,255,0.7)" stroke-width="1.5"/>
+                      <circle cx="18" cy="18" r="10" fill="none" stroke="${coreColor}" stroke-width="1.5" opacity="${ringOpacity * 0.9}"/>
                       <!-- Inner ring -->
-                      <circle cx="18" cy="18" r="6" fill="none" stroke="rgba(0,255,255,0.8)" stroke-width="1.5"/>
+                      <circle cx="18" cy="18" r="6" fill="none" stroke="${coreColor}" stroke-width="1.5" opacity="${ringOpacity}"/>
                       <!-- Core -->
-                      <circle cx="18" cy="18" r="3" fill="rgba(0,255,255,1)" opacity="0.9"/>
+                      <circle cx="18" cy="18" r="3" fill="${coreColor}" opacity="0.9"/>
                       <!-- Triangular segments (Arc reactor design) -->
-                      <path d="M 18 18 L 24 10 L 26 12" stroke="rgba(0,255,255,0.6)" stroke-width="0.8" fill="none"/>
-                      <path d="M 18 18 L 26 24 L 24 26" stroke="rgba(0,255,255,0.6)" stroke-width="0.8" fill="none"/>
-                      <path d="M 18 18 L 12 26 L 10 24" stroke="rgba(0,255,255,0.6)" stroke-width="0.8" fill="none"/>
-                      <path d="M 18 18 L 10 12 L 12 10" stroke="rgba(0,255,255,0.6)" stroke-width="0.8" fill="none"/>
+                      <path d="M 18 18 L 24 10 L 26 12" stroke="${coreColor}" stroke-width="0.8" fill="none" opacity="0.7"/>
+                      <path d="M 18 18 L 26 24 L 24 26" stroke="${coreColor}" stroke-width="0.8" fill="none" opacity="0.7"/>
+                      <path d="M 18 18 L 12 26 L 10 24" stroke="${coreColor}" stroke-width="0.8" fill="none" opacity="0.7"/>
+                      <path d="M 18 18 L 10 12 L 12 10" stroke="${coreColor}" stroke-width="0.8" fill="none" opacity="0.7"/>
+                      <!-- Battery percentage text -->
+                      <text x="18" y="38" text-anchor="middle" font-size="8" fill="${coreColor}" font-family="monospace" font-weight="bold" opacity="0.8">${battery.toFixed(0)}%</text>
                     </svg>
                     <style>
                       @keyframes arc-reactor-pulse {
                         0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
-                        50% { transform: scale(1.15) rotate(180deg); opacity: 0.9; }
+                        50% { transform: scale(${1 + battery / 200}) rotate(180deg); opacity: ${0.8 + battery / 500}; }
                       }
                     </style>
                   `;
