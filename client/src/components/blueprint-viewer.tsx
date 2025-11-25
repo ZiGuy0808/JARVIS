@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { SuitImageViewer } from '@/components/suit-image-viewer';
+import { TypewriterText } from '@/components/typewriter-text';
 import { motion } from 'framer-motion';
 import { ChevronRight, Zap, Shield, Cpu, Target, Flame, Layers } from 'lucide-react';
 
@@ -30,37 +31,25 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2,
-    },
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 },
   },
 };
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: 'easeOut' },
-  },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
 };
 
 const headerVariants = {
   hidden: { opacity: 0, y: -30, scale: 0.95 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.6, ease: 'easeOut' },
-  },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: 'easeOut' } },
 };
 
 export function BlueprintViewer() {
   const [selectedMark, setSelectedMark] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { data: allSuits } = useQuery({
+  const { data: allSuits, isLoading: suitsLoading } = useQuery({
     queryKey: ['/api/blueprints/all'],
   }) as any;
 
@@ -114,7 +103,7 @@ export function BlueprintViewer() {
       >
         <div>
           <h2 className="text-2xl font-bold text-foreground">Iron Man Blueprint Gallery</h2>
-          <p className="text-sm text-muted-foreground">All {suits.length} Suits with Holographic Images</p>
+          <p className="text-sm text-muted-foreground">All {suits.length} Suits</p>
         </div>
       </motion.div>
 
@@ -223,14 +212,13 @@ export function BlueprintViewer() {
               initial="hidden"
               animate="visible"
             >
-              {/* Holographic Header - Large and Impressive */}
+              {/* Holographic Header */}
               <motion.div variants={headerVariants} className="relative">
                 <div
                   className="absolute inset-0 rounded-lg blur-lg opacity-20"
                   style={{ backgroundColor: glowColor }}
                 />
                 <Card className="relative bg-gradient-to-br from-primary/20 via-primary/5 to-transparent border-2 border-primary/50 shadow-lg overflow-hidden">
-                  {/* Animated background lines */}
                   <motion.div
                     className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r"
                     style={{ backgroundImage: `linear-gradient(to right, transparent, ${glowColor}, transparent)` }}
@@ -246,11 +234,11 @@ export function BlueprintViewer() {
                           transition={{ delay: 0.2 }}
                         >
                           <CardTitle className="text-3xl font-orbitron bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                            {suit.name}
+                            <TypewriterText text={suit.name} speed={30} />
                           </CardTitle>
-                          <CardDescription className="text-sm mt-2 font-rajdhani">
-                            {suit.specialization}
-                          </CardDescription>
+                          <CardTitle className="text-sm mt-2 font-rajdhani text-muted-foreground">
+                            <TypewriterText text={suit.specialization} speed={30} />
+                          </CardTitle>
                         </motion.div>
                       </div>
                       <motion.div
@@ -258,9 +246,7 @@ export function BlueprintViewer() {
                         animate={{ scale: 1 }}
                         transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.3 }}
                       >
-                        <Badge className={getStatusColor(suit.status)} data-testid={`badge-suit-status-detail-${suit.status}`}>
-                          {suit.status}
-                        </Badge>
+                        <Badge className={getStatusColor(suit.status)}>{suit.status}</Badge>
                       </motion.div>
                     </motion.div>
                   </CardHeader>
@@ -268,7 +254,9 @@ export function BlueprintViewer() {
                     <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
                       <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
                         <p className="text-xs font-semibold text-muted-foreground mb-1">Film Debut</p>
-                        <p className="font-bold text-sm">{suit.filmIntroduced}</p>
+                        <p className="font-bold text-sm">
+                          <TypewriterText text={suit.filmIntroduced} speed={30} />
+                        </p>
                       </div>
                       <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
                         <p className="text-xs font-semibold text-muted-foreground mb-1">Color</p>
@@ -279,7 +267,9 @@ export function BlueprintViewer() {
                             animate={{ boxShadow: [`0 0 10px ${glowColor}44`, `0 0 20px ${glowColor}88`, `0 0 10px ${glowColor}44`] }}
                             transition={{ duration: 2, repeat: Infinity }}
                           />
-                          <span className="text-xs font-medium">{suit.color}</span>
+                          <span className="text-xs font-medium">
+                            <TypewriterText text={suit.color} speed={30} />
+                          </span>
                         </div>
                       </div>
                     </motion.div>
@@ -287,9 +277,9 @@ export function BlueprintViewer() {
                 </Card>
               </motion.div>
 
-              {/* Technical Specs - With Progress Bars */}
+              {/* Technical Specs */}
               <motion.div variants={itemVariants}>
-                <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/30 hover:border-blue-500/50 transition-all">
+                <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/30">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <motion.div animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}>
@@ -299,27 +289,19 @@ export function BlueprintViewer() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.4 }}
-                    >
+                    <div>
                       <p className="font-semibold text-muted-foreground mb-1 text-xs">Armor Material</p>
-                      <p className="text-sm bg-blue-500/10 px-2 py-1 rounded border border-blue-500/30">{suit.technicalSpecs.armor}</p>
-                    </motion.div>
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.5 }}
-                    >
+                      <p className="text-sm bg-blue-500/10 px-2 py-1 rounded border border-blue-500/30">
+                        <TypewriterText text={suit.technicalSpecs.armor} speed={20} />
+                      </p>
+                    </div>
+                    <div>
                       <p className="font-semibold text-muted-foreground mb-1 text-xs">Power Source</p>
-                      <p className="text-sm bg-blue-500/10 px-2 py-1 rounded border border-blue-500/30">{suit.technicalSpecs.power}</p>
-                    </motion.div>
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.6 }}
-                    >
+                      <p className="text-sm bg-blue-500/10 px-2 py-1 rounded border border-blue-500/30">
+                        <TypewriterText text={suit.technicalSpecs.power} speed={20} />
+                      </p>
+                    </div>
+                    <div>
                       <p className="font-semibold text-muted-foreground mb-2 text-xs">Capabilities</p>
                       <div className="flex flex-wrap gap-1">
                         {suit.technicalSpecs.capabilities.map((cap: string, i: number) => (
@@ -329,20 +311,20 @@ export function BlueprintViewer() {
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 0.6 + i * 0.05 }}
                           >
-                            <Badge variant="secondary" className="text-xs bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30">
+                            <Badge variant="secondary" className="text-xs bg-blue-500/20 text-blue-600 dark:text-blue-400">
                               {cap}
                             </Badge>
                           </motion.div>
                         ))}
                       </div>
-                    </motion.div>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
 
-              {/* Combat Info - With Icons */}
+              {/* Combat Info */}
               <motion.div variants={itemVariants}>
-                <Card className="bg-gradient-to-br from-red-500/10 to-transparent border-red-500/30 hover:border-red-500/50 transition-all">
+                <Card className="bg-gradient-to-br from-red-500/10 to-transparent border-red-500/30">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Shield className="w-4 h-4 text-red-500" />
@@ -381,7 +363,9 @@ export function BlueprintViewer() {
                           <Flame className="w-3 h-3" />
                           Weaknesses
                         </p>
-                        <p className="text-xs text-orange-600 dark:text-orange-400">{suit.weaknesses}</p>
+                        <p className="text-xs text-orange-600 dark:text-orange-400">
+                          <TypewriterText text={suit.weaknesses} speed={20} />
+                        </p>
                       </motion.div>
                     )}
                     {suit.upgrades && (
@@ -392,16 +376,18 @@ export function BlueprintViewer() {
                         className="p-2 rounded bg-green-500/10 border border-green-500/30"
                       >
                         <p className="font-semibold text-green-600 dark:text-green-400 text-xs mb-1">Upgrades</p>
-                        <p className="text-xs text-green-600 dark:text-green-400">{suit.upgrades}</p>
+                        <p className="text-xs text-green-600 dark:text-green-400">
+                          <TypewriterText text={suit.upgrades} speed={20} />
+                        </p>
                       </motion.div>
                     )}
                   </CardContent>
                 </Card>
               </motion.div>
 
-              {/* Notable Moments - Timeline Style */}
+              {/* Notable Moments */}
               <motion.div variants={itemVariants}>
-                <Card className="bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/30 hover:border-purple-500/50 transition-all">
+                <Card className="bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/30">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Layers className="w-4 h-4 text-purple-500" />
