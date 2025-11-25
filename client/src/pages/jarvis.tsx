@@ -240,6 +240,18 @@ export default function JarvisPage() {
               <ChatInterface 
                 messages={messages}
                 onTypingComplete={() => {
+                  // Mark the last assistant message as done typing
+                  setMessages(prev => {
+                    const updated = [...prev];
+                    for (let i = updated.length - 1; i >= 0; i--) {
+                      if (updated[i].role === 'assistant' && updated[i].isTyping) {
+                        updated[i] = { ...updated[i], isTyping: false };
+                        break;
+                      }
+                    }
+                    return updated;
+                  });
+                  
                   setTimeout(() => setIsSpeaking(false), 500);
                 }}
               />
