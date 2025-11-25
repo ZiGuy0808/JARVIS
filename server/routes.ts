@@ -9,6 +9,10 @@ import { searchWeb } from "./lib/search";
 import { searchQuotes, getQuotesByFilm, getQuotesByContext, getAllFilms, getAllContexts } from "./lib/quotes";
 import { getSuitByMark, getSuitByName, searchSuits, getSuitsByFilm, getAllSuits } from "./lib/suits-database";
 import { getQuestionByDifficulty, getRandomRoast, getRandomEncouragement, getRandomQuote, getRandomUnusedQuestion } from "./lib/tony-stark-quiz";
+import { parseLocationFromMessage, type Location } from "./lib/locations";
+
+// Store custom Tony location that can be set via chat requests
+let currentTonyLocationOverride: Location | null = null;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Chat endpoint
@@ -18,6 +22,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!message || typeof message !== 'string') {
         return res.status(400).json({ error: 'Message is required' });
+      }
+
+      // Check if user wants to move Tony to a new location
+      const locationRequest = parseLocationFromMessage(message);
+      let newLocation: Location | null = null;
+      
+      if (locationRequest) {
+        currentTonyLocationOverride = locationRequest.location;
+        newLocation = locationRequest.location;
+        console.log(`[TONY MOVEMENT] Tony is now heading to ${newLocation.name}`);
       }
 
       // Improved search detection - check if query needs web lookup
@@ -88,7 +102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.addConversation({ role: 'user', content: message });
       await storage.addConversation({ role: 'assistant', content: response });
 
-      res.json({ response, isEasterEgg, didSearch });
+      res.json({ response, isEasterEgg, didSearch, newLocation });
     } catch (error) {
       console.error('Chat error:', error);
       res.status(500).json({ 
@@ -124,11 +138,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Tony Stark activity endpoint
   app.get("/api/tony-activity", async (_req, res) => {
     try {
-      const activity = getTonyActivity();
+      let activity = getTonyActivity();
+      
+      // Use override location if set (from chat requests to move Tony)
+      if (currentTonyLocationOverride) {
+        activity = {
+          ...activity,
+          location: currentTonyLocationOverride.name,
+          coordinates: currentTonyLocationOverride.coordinates
+        };
+      }
+      
       res.json(activity);
     } catch (error) {
       console.error('Tony activity error:', error);
       res.status(500).json({ error: 'Failed to fetch Tony Stark activity' });
+    }
+  });
+
+  // Endpoint to set Tony's location (for chat-driven movement)
+  app.post("/api/tony-location", async (req, res) => {
+    try {
+      const { location } = req.body;
+      
+      if (!location || !location.coordinates) {
+        return res.status(400).json({ error: 'Invalid location data' });
+      }
+
+      currentTonyLocationOverride = location;
+      res.json({ success: true, location });
+    } catch (error) {
+      console.error('Location update error:', error);
+      res.status(500).json({ error: 'Failed to update Tony location' });
     }
   });
 

@@ -174,7 +174,7 @@ export default function JarvisPage() {
         throw err;
       }
     },
-    onSuccess: (data: { response: string; isEasterEgg?: boolean; didSearch?: boolean }) => {
+    onSuccess: (data: { response: string; isEasterEgg?: boolean; didSearch?: boolean; newLocation?: any }) => {
       console.log('[CHAT DEBUG] 3. ===== onSuccess CALLED =====');
       console.log('[CHAT DEBUG] 3a. Data received:', data);
       setIsProcessing(false);
@@ -200,6 +200,19 @@ export default function JarvisPage() {
       // Start waveform animation immediately
       setIsSpeaking(true);
       console.log('[CHAT DEBUG] 6. Set isSpeaking to true for waveform animation');
+
+      // If Tony's location was changed, invalidate the activity query to trigger globe animation
+      if (data.newLocation) {
+        console.log('[TONY MOVEMENT] New location detected:', data.newLocation.name);
+        toast({
+          title: "Calling Tony Stark",
+          description: `Tony is heading to ${data.newLocation.name}`,
+        });
+        // Invalidate the query to refetch new location
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['/api/tony-activity'] });
+        }, 500);
+      }
 
       if (data.isEasterEgg) {
         toast({
