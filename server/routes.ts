@@ -254,17 +254,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Jarvis Tony Stark Survival Quiz - Endless mode
+  // Quiz session tracking
+  const sessionQuestions = new Map<string, Set<number>>();
+
+  // Get new session ID
+  app.get("/api/tony-quiz/start", (req, res) => {
+    try {
+      const mode = (req.query.mode as string) || 'regular';
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      sessionQuestions.set(sessionId, new Set());
+      
+      res.json({ sessionId, mode });
+    } catch (error) {
+      console.error('Tony quiz start error:', error);
+      res.status(500).json({ error: 'Failed to start quiz' });
+    }
+  });
+
+  // Jarvis Tony Stark Survival Quiz
   app.get("/api/tony-quiz/next", (req, res) => {
     try {
       const questionNumber = parseInt(req.query.question as string) || 1;
-      const question = getQuestionByDifficulty(questionNumber);
+      const sessionId = (req.query.sessionId as string) || '';
+      const mode = (req.query.mode as string) || 'regular';
+
+      const usedIds = sessionQuestions.get(sessionId) || new Set();
+      
+      let question;
+      if (mode === 'endless') {
+        // For endless mode, get random unused question
+        const { getRandomUnusedQuestion } = require('./lib/tony-stark-quiz');
+        question = getRandomUnusedQuestion(usedIds);
+      } else {
+        // For regular mode, use progressive difficulty
+        const { getQuestionByDifficulty } = require('./lib/tony-stark-quiz');
+        question = getQuestionByDifficulty(questionNumber);
+      }
+      
+      if (question) {
+        usedIds.add(question.id);
+        sessionQuestions.set(sessionId, usedIds);
+      }
+      
+      const { getRandomQuote } = require('./lib/tony-stark-quiz');
       
       res.json({ 
         question,
         questionNumber,
-        jarvisEncouragement: getRandomEncouragement(),
-        jarvisQuote: getRandomQuote()
+        jarvisQuote: getRandomQuote(),
+        difficultyIndicator: mode === 'endless' ? 'EXTREMELY HARD' : `Difficulty: ${question.difficulty}/10`
       });
     } catch (error) {
       console.error('Tony quiz error:', error);
@@ -276,6 +314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tony-quiz/check", (req, res) => {
     try {
       const { answer, correct } = req.body;
+      const { getRandomEncouragement, getRandomRoast } = require('./lib/tony-stark-quiz');
       
       if (answer === correct) {
         res.json({ 
