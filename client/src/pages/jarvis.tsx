@@ -4,6 +4,7 @@ import { WaveformOrb } from '@/components/waveform-orb';
 import { ChatInterface } from '@/components/chat-interface';
 import { DashboardWidgets } from '@/components/dashboard-widgets';
 import { TonyTracker } from '@/components/tony-tracker';
+import { StarkScan } from '@/components/stark-scan';
 import { VoiceButton } from '@/components/voice-button';
 import { TextInput } from '@/components/text-input';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -13,12 +14,39 @@ import type { ChatMessage } from '@shared/schema';
 import { motion } from 'framer-motion';
 import { apiRequest } from '@/lib/queryClient';
 
+interface StarkScanData {
+  timestamp: number;
+  suit: string;
+  outfit: string;
+  heartRate: number;
+  mood: string;
+  bodyTemperature: number;
+  energyLevel: number;
+  armorIntegrity: number;
+  location: string;
+  activity: string;
+  coordinates: { lat: number; lng: number };
+  vitals: {
+    adrenaline: number;
+    cortisol: number;
+    oxygenation: number;
+  };
+  systems: {
+    neural: number;
+    circulatory: number;
+    respiratory: number;
+    muscular: number;
+  };
+}
+
 export default function JarvisPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(true);
+  const [showScan, setShowScan] = useState(false);
+  const [scanData, setScanData] = useState<StarkScanData | null>(null);
   const recognitionRef = useRef<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();

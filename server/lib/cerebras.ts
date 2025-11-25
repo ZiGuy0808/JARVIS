@@ -12,7 +12,17 @@ interface TonyLocation {
   };
 }
 
-function buildSystemPrompt(tonyLocation?: TonyLocation): string {
+interface StarkScanData {
+  suit: string;
+  outfit: string;
+  heartRate: number;
+  mood: string;
+  bodyTemperature: number;
+  energyLevel: number;
+  armorIntegrity: number;
+}
+
+function buildSystemPrompt(tonyLocation?: TonyLocation, scanData?: StarkScanData): string {
   let prompt = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), Tony Stark's AI assistant from the Iron Man movies. 
 
 PERSONALITY TRAITS:
@@ -39,11 +49,23 @@ TONY STARK'S CURRENT STATUS:
   if (tonyLocation) {
     prompt += `- Location: ${tonyLocation.location}
 - Current Activity: ${tonyLocation.activity}
-- Coordinates: Latitude ${tonyLocation.coordinates.lat.toFixed(2)}°, Longitude ${tonyLocation.coordinates.lng.toFixed(2)}°
-
-When users ask about Tony's whereabouts, location, or current activities, refer to this information. You can discuss why he might be there, what he could be doing, and provide context about his mission or current endeavors.`;
+- Coordinates: Latitude ${tonyLocation.coordinates.lat.toFixed(2)}°, Longitude ${tonyLocation.coordinates.lng.toFixed(2)}°`;
   } else {
     prompt += `- Please refer to Tony's current location and activities when asked.`;
+  }
+
+  if (scanData) {
+    prompt += `
+
+TONY'S BIOMETRIC STATUS:
+- Current Suit: ${scanData.suit}
+- Current Outfit: ${scanData.outfit}
+- Heart Rate: ${scanData.heartRate} BPM (Mood: ${scanData.mood})
+- Energy Level: ${scanData.energyLevel}%
+- Body Temperature: ${scanData.bodyTemperature}°C
+- Armor Integrity: ${scanData.armorIntegrity}%
+
+You can discuss Tony's physical state, what he's wearing, his current mood based on biometrics, and how his physical condition relates to his current activities. Use this information to provide context when asked about Tony's status, well-being, or capabilities.`;
   }
 
   prompt += `
@@ -56,7 +78,8 @@ IMPORTANT: When responding to greetings or simple questions, keep responses brie
 export async function callCerebras(
   userMessage: string,
   conversationHistory: CerebrasMessage[] = [],
-  tonyLocation?: TonyLocation
+  tonyLocation?: TonyLocation,
+  scanData?: StarkScanData
 ): Promise<{ response: string; isEasterEgg: boolean }> {
   const apiKey = process.env.CEREBRAS_API_KEY;
   
@@ -73,7 +96,7 @@ export async function callCerebras(
     lowerMessage.includes('jarvis');
 
   const messages: CerebrasMessage[] = [
-    { role: 'system', content: buildSystemPrompt(tonyLocation) },
+    { role: 'system', content: buildSystemPrompt(tonyLocation, scanData) },
     ...conversationHistory,
     { role: 'user', content: userMessage }
   ];

@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { callCerebras } from "./lib/cerebras";
 import { getWeather } from "./lib/weather";
 import { getTonyActivity } from "./lib/tony-activity";
+import { generateStarkScan } from "./lib/stark-scan";
 import { searchWeb } from "./lib/search";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -41,8 +42,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? `${message}\n\nContext from web search: ${searchContext}`
         : message;
 
-      // Call Cerebras AI with Tony's location context
-      const { response, isEasterEgg } = await callCerebras(enhancedMessage, conversationHistory, tonyLocation);
+      // Generate Stark Scan data for biometric context
+      let scanData = undefined;
+      if (tonyLocation) {
+        try {
+          const tonyActivityForScan = {
+            activity: tonyLocation.activity,
+            location: tonyLocation.location,
+            coordinates: tonyLocation.coordinates
+          };
+          const scan = generateStarkScan(tonyActivityForScan);
+          scanData = {
+            suit: scan.suit,
+            outfit: scan.outfit,
+            heartRate: scan.heartRate,
+            mood: scan.mood,
+            bodyTemperature: scan.bodyTemperature,
+            energyLevel: scan.energyLevel,
+            armorIntegrity: scan.armorIntegrity
+          };
+        } catch (e) {
+          // If scan generation fails, continue without it
+          console.error('Failed to generate scan data:', e);
+        }
+      }
+
+      // Call Cerebras AI with Tony's location and biometric context
+      const { response, isEasterEgg } = await callCerebras(enhancedMessage, conversationHistory, tonyLocation, scanData);
 
       // Save conversation to storage
       await storage.addConversation({ role: 'user', content: message });
@@ -89,6 +115,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Tony activity error:', error);
       res.status(500).json({ error: 'Failed to fetch Tony Stark activity' });
+    }
+  });
+
+  // Stark Scan endpoint - detailed biometric analysis
+  app.get("/api/stark-scan", async (_req, res) => {
+    try {
+      const activity = getTonyActivity();
+      const scan = generateStarkScan(activity);
+      res.json(scan);
+    } catch (error) {
+      console.error('Stark scan error:', error);
+      res.status(500).json({ error: 'Failed to generate Stark scan' });
     }
   });
 
