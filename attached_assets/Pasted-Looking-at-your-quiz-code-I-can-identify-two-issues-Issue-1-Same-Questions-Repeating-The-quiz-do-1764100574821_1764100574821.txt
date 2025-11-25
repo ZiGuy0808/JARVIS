@@ -1,0 +1,55 @@
+Looking at your quiz code, I can identify two issues:
+
+Issue 1: Same Questions Repeating
+The quiz does repeat questions because in tony-stark-quiz.ts, the generateExtensiveQuestions() function only has about 97 truly unique base questions, then it creates "variations" by just adding "Advanced: " as a prefix to reach 1000 questions:
+
+while (questions.length < 1000) {
+  const baseQuestion = allQuestions[questions.length % allQuestions.length];
+  questions.push({
+    id: questions.length + 1,
+    question: `Advanced: ${baseQuestion.q}`,  // Just adds "Advanced:" prefix
+    options: baseQuestion.opts,
+    correct: baseQuestion.c,
+    difficulty: Math.min(10, baseQuestion.d + 1),
+    category: baseQuestion.cat,
+    explanation: `${baseQuestion.opts[baseQuestion.c]} is the answer. Extended version.`,
+  });
+}
+So after ~97 questions, you'll start seeing duplicates with "Advanced: " in front.
+
+Issue 2: Web Search for Extreme Questions
+Web search IS implemented for extreme questions in endless mode, but it only triggers:
+
+After question 8 in endless mode
+With a 30% chance per question (the code says if (Math.random() > 0.7) which means 30% chance it activates)
+From tony-stark-quiz.ts:
+
+export async function getExtremeWebSearchQuestion(usedIds: Set<number>, questionCount: number): Promise<TonySurvivalQuestion | null> {
+  // Trigger web-searched extreme questions after 8+ questions in endless mode
+  if (questionCount < 8) {
+    return null;
+  }
+  // 70% chance to use web-searched extreme questions (higher frequency)
+  if (Math.random() > 0.7) {  // This means only 30% chance!
+    return null;
+  }
+And in routes.ts, it's called for endless mode:
+
+if (mode === 'endless') {
+  // For endless mode, always try to get extreme AI questions
+  const { getExtremeWebSearchQuestion } = await import('./lib/tony-stark-quiz');
+  const extremeQuestion = await getExtremeWebSearchQuestion(usedIds, questionNumber);
+  if (extremeQuestion) {
+    question = extremeQuestion;
+  } else {
+    question = getRandomUnusedQuestion(usedIds);
+  }
+}
+Summary:
+
+The quiz repeats questions because there are only ~97 unique base questions
+Web search for extreme questions DOES work, but only after question 8 in endless mode with a 30% chance per question
+The session tracking with usedIds prevents immediate repeats within the same session, but with only ~97 base questions, you'll cycle through them eventually
+
+Scroll to latest
+Assistant mode

@@ -3,10 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SuitImageViewer } from '@/components/suit-image-viewer';
 import { TypewriterText } from '@/components/typewriter-text';
 import { motion } from 'framer-motion';
-import { ChevronRight, Zap, Shield, Cpu, Target, Flame, Layers } from 'lucide-react';
+import { ChevronRight, Zap, Shield, Cpu, Target, Flame, Layers, X } from 'lucide-react';
 
 interface IronManSuit {
   name: string;
@@ -182,13 +183,524 @@ export function BlueprintViewer() {
           )}
         </motion.div>
 
-        {/* Right: Detailed View - Hidden on mobile */}
+        {/* Right: Detailed View - Desktop only */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
           className="hidden md:flex md:flex-col md:w-96 overflow-y-auto border rounded-lg bg-card/30 backdrop-blur"
         >
+          <SuitDetailsContent 
+            suit={suit}
+            isSuitLoading={isSuitLoading}
+            isSuitFetching={isSuitFetching}
+            getStatusColor={getStatusColor}
+            glowColor={glowColor}
+          />
+        </motion.div>
+      </div>
+
+      {/* Mobile: Suit Details Modal */}
+      <Dialog open={selectedMark !== null} onOpenChange={(open) => !open && setSelectedMark(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto max-w-2xl">
+          <DialogHeader className="sticky top-0 z-10 bg-background/95 pb-4">
+            <DialogTitle className="text-2xl">Suit Details</DialogTitle>
+          </DialogHeader>
+          <SuitDetailsContent 
+            suit={suit}
+            isSuitLoading={isSuitLoading}
+            isSuitFetching={isSuitFetching}
+            getStatusColor={getStatusColor}
+            glowColor={glowColor}
+          />
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// Extracted component for suit details that works on both desktop and mobile
+function SuitDetailsContent({ suit, isSuitLoading, isSuitFetching, getStatusColor, glowColor }: any) {
+  return (
+    <>
+      {(isSuitLoading || isSuitFetching) && !suit ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="m-4 h-96 flex items-center justify-center rounded-lg bg-gradient-to-br from-primary/10 to-transparent border border-primary/30"
+        >
+          <div className="text-center">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+            >
+              <Cpu className="w-12 h-12 mx-auto mb-2 text-primary" />
+            </motion.div>
+            <p className="text-muted-foreground">Loading blueprint...</p>
+          </div>
+        </motion.div>
+      ) : suit ? (
+        <motion.div
+          className="p-4 space-y-4"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          {/* Holographic Header */}
+          <motion.div variants={headerVariants} className="relative">
+            <div
+              className="absolute inset-0 rounded-lg blur-lg opacity-20"
+              style={{ backgroundColor: glowColor }}
+            />
+            <Card className="relative bg-gradient-to-br from-primary/20 via-primary/5 to-transparent border-2 border-primary/50 shadow-lg overflow-hidden">
+              <motion.div
+                className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r"
+                style={{ backgroundImage: `linear-gradient(to right, transparent, ${glowColor}, transparent)` }}
+                animate={{ opacity: [0.3, 1, 0.3] }}
+                transition={{ duration: 3, repeat: Infinity }}
+              />
+              <CardHeader className="pb-4">
+                <motion.div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      <CardTitle className="text-3xl font-orbitron bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                        <TypewriterText text={suit.name} speed={30} />
+                      </CardTitle>
+                      <CardTitle className="text-sm mt-2 font-rajdhani text-muted-foreground">
+                        <TypewriterText text={suit.specialization} speed={30} />
+                      </CardTitle>
+                    </motion.div>
+                  </div>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.3 }}
+                  >
+                    <Badge className={getStatusColor(suit.status)}>{suit.status}</Badge>
+                  </motion.div>
+                </motion.div>
+              </CardHeader>
+              <CardContent>
+                <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">Film Debut</p>
+                    <p className="font-bold text-sm">
+                      <TypewriterText text={suit.filmIntroduced} speed={30} />
+                    </p>
+                  </div>
+                  <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">Color</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <motion.div
+                        className="w-5 h-5 rounded-full border-2 border-primary shadow-lg"
+                        style={{ backgroundColor: suit.color === 'Red and Gold' ? '#DC2626' : '#999' }}
+                        animate={{ boxShadow: [`0 0 10px ${glowColor}44`, `0 0 20px ${glowColor}88`, `0 0 10px ${glowColor}44`] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      />
+                      <span className="text-xs font-medium">
+                        <TypewriterText text={suit.color} speed={30} />
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Technical Specs */}
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}>
+                    <Zap className="w-4 h-4 text-blue-500" />
+                  </motion.div>
+                  Specifications
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="font-semibold text-muted-foreground mb-1 text-xs">Armor Material</p>
+                  <p className="text-sm bg-blue-500/10 px-2 py-1 rounded border border-blue-500/30">
+                    <TypewriterText text={suit.technicalSpecs.armor} speed={20} />
+                  </p>
+                </div>
+                <div>
+                  <p className="font-semibold text-muted-foreground mb-1 text-xs">Power Source</p>
+                  <p className="text-sm bg-blue-500/10 px-2 py-1 rounded border border-blue-500/30">
+                    <TypewriterText text={suit.technicalSpecs.power} speed={20} />
+                  </p>
+                </div>
+                <div>
+                  <p className="font-semibold text-muted-foreground mb-2 text-xs">Capabilities</p>
+                  <div className="flex flex-wrap gap-1">
+                    {suit.technicalSpecs.capabilities.map((cap: string, i: number) => (
+                      <motion.div
+                        key={cap}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.6 + i * 0.05 }}
+                      >
+                        <Badge variant="secondary" className="text-xs bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                          {cap}
+                        </Badge>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Combat Info */}
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gradient-to-br from-red-500/10 to-transparent border-red-500/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-red-500" />
+                  Combat Profile
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="font-semibold text-muted-foreground mb-2 text-xs flex items-center gap-1">
+                    <Target className="w-3 h-3 text-red-500" />
+                    Key Usages
+                  </p>
+                  <ul className="space-y-1">
+                    {suit.keyUsages.map((usage: string, i: number) => (
+                      <motion.li
+                        key={i}
+                        className="flex gap-2 text-xs p-2 rounded bg-red-500/5 border border-red-500/20"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.7 + i * 0.08 }}
+                      >
+                        <span className="text-red-500 font-bold">{i + 1}.</span>
+                        <span>{usage}</span>
+                      </motion.li>
+                    ))}
+                  </ul>
+                </div>
+                {suit.weaknesses && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.8 }}
+                    className="p-2 rounded bg-orange-500/10 border border-orange-500/30"
+                  >
+                    <p className="font-semibold text-orange-600 dark:text-orange-400 text-xs mb-1 flex items-center gap-1">
+                      <Flame className="w-3 h-3" />
+                      Weaknesses
+                    </p>
+                    <p className="text-xs text-orange-600 dark:text-orange-400">
+                      <TypewriterText text={suit.weaknesses} speed={20} />
+                    </p>
+                  </motion.div>
+                )}
+                {suit.upgrades && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.9 }}
+                    className="p-2 rounded bg-green-500/10 border border-green-500/30"
+                  >
+                    <p className="font-semibold text-green-600 dark:text-green-400 text-xs mb-1">Upgrades</p>
+                    <p className="text-xs text-green-600 dark:text-green-400">
+                      <TypewriterText text={suit.upgrades} speed={20} />
+                    </p>
+                  </motion.div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Notable Moments */}
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-purple-500" />
+                  Notable Moments
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {suit.notableMoments.map((moment: string, i: number) => (
+                    <motion.li
+                      key={i}
+                      className="flex gap-2 text-xs p-2 rounded bg-purple-500/5 border border-purple-500/20"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 1 + i * 0.1 }}
+                      whileHover={{ x: 4, backgroundColor: 'rgba(168, 85, 247, 0.15)' }}
+                    >
+                      <span className="text-purple-500 font-bold flex-shrink-0">{i + 1}.</span>
+                      <span>{moment}</span>
+                    </motion.li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex items-center justify-center h-full text-muted-foreground"
+        >
+          <p className="text-sm">Select a suit to view details</p>
+        </motion.div>
+      )}
+    </>
+  );
+}
+
+/* OLD CODE TO REMOVE - Replace everything from here to the end of the file
+        {(isSuitLoading || isSuitFetching) && !suit ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="m-4 h-96 flex items-center justify-center rounded-lg bg-gradient-to-br from-primary/10 to-transparent border border-primary/30"
+            >
+              <div className="text-center">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                >
+                  <Cpu className="w-12 h-12 mx-auto mb-2 text-primary" />
+                </motion.div>
+                <p className="text-muted-foreground">Loading blueprint...</p>
+              </div>
+            </motion.div>
+          ) : suit ? (
+            <motion.div
+              className="p-4 space-y-4"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {/* Holographic Header */}
+              <motion.div variants={headerVariants} className="relative">
+                <div
+                  className="absolute inset-0 rounded-lg blur-lg opacity-20"
+                  style={{ backgroundColor: glowColor }}
+                />
+                <Card className="relative bg-gradient-to-br from-primary/20 via-primary/5 to-transparent border-2 border-primary/50 shadow-lg overflow-hidden">
+                  <motion.div
+                    className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r"
+                    style={{ backgroundImage: `linear-gradient(to right, transparent, ${glowColor}, transparent)` }}
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  />
+                  <CardHeader className="pb-4">
+                    <motion.div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.2 }}
+                        >
+                          <CardTitle className="text-3xl font-orbitron bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                            <TypewriterText text={suit.name} speed={30} />
+                          </CardTitle>
+                          <CardTitle className="text-sm mt-2 font-rajdhani text-muted-foreground">
+                            <TypewriterText text={suit.specialization} speed={30} />
+                          </CardTitle>
+                        </motion.div>
+                      </div>
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.3 }}
+                      >
+                        <Badge className={getStatusColor(suit.status)}>{suit.status}</Badge>
+                      </motion.div>
+                    </motion.div>
+                  </CardHeader>
+                  <CardContent>
+                    <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
+                        <p className="text-xs font-semibold text-muted-foreground mb-1">Film Debut</p>
+                        <p className="font-bold text-sm">
+                          <TypewriterText text={suit.filmIntroduced} speed={30} />
+                        </p>
+                      </div>
+                      <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
+                        <p className="text-xs font-semibold text-muted-foreground mb-1">Color</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <motion.div
+                            className="w-5 h-5 rounded-full border-2 border-primary shadow-lg"
+                            style={{ backgroundColor: suit.color === 'Red and Gold' ? '#DC2626' : '#999' }}
+                            animate={{ boxShadow: [`0 0 10px ${glowColor}44`, `0 0 20px ${glowColor}88`, `0 0 10px ${glowColor}44`] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                          />
+                          <span className="text-xs font-medium">
+                            <TypewriterText text={suit.color} speed={30} />
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Technical Specs */}
+              <motion.div variants={itemVariants}>
+                <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/30">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}>
+                        <Zap className="w-4 h-4 text-blue-500" />
+                      </motion.div>
+                      Specifications
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <p className="font-semibold text-muted-foreground mb-1 text-xs">Armor Material</p>
+                      <p className="text-sm bg-blue-500/10 px-2 py-1 rounded border border-blue-500/30">
+                        <TypewriterText text={suit.technicalSpecs.armor} speed={20} />
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-muted-foreground mb-1 text-xs">Power Source</p>
+                      <p className="text-sm bg-blue-500/10 px-2 py-1 rounded border border-blue-500/30">
+                        <TypewriterText text={suit.technicalSpecs.power} speed={20} />
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-muted-foreground mb-2 text-xs">Capabilities</p>
+                      <div className="flex flex-wrap gap-1">
+                        {suit.technicalSpecs.capabilities.map((cap: string, i: number) => (
+                          <motion.div
+                            key={cap}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.6 + i * 0.05 }}
+                          >
+                            <Badge variant="secondary" className="text-xs bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                              {cap}
+                            </Badge>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Combat Info */}
+              <motion.div variants={itemVariants}>
+                <Card className="bg-gradient-to-br from-red-500/10 to-transparent border-red-500/30">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-red-500" />
+                      Combat Profile
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <p className="font-semibold text-muted-foreground mb-2 text-xs flex items-center gap-1">
+                        <Target className="w-3 h-3 text-red-500" />
+                        Key Usages
+                      </p>
+                      <ul className="space-y-1">
+                        {suit.keyUsages.map((usage: string, i: number) => (
+                          <motion.li
+                            key={i}
+                            className="flex gap-2 text-xs p-2 rounded bg-red-500/5 border border-red-500/20"
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.7 + i * 0.08 }}
+                          >
+                            <span className="text-red-500 font-bold">{i + 1}.</span>
+                            <span>{usage}</span>
+                          </motion.li>
+                        ))}
+                      </ul>
+                    </div>
+                    {suit.weaknesses && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.8 }}
+                        className="p-2 rounded bg-orange-500/10 border border-orange-500/30"
+                      >
+                        <p className="font-semibold text-orange-600 dark:text-orange-400 text-xs mb-1 flex items-center gap-1">
+                          <Flame className="w-3 h-3" />
+                          Weaknesses
+                        </p>
+                        <p className="text-xs text-orange-600 dark:text-orange-400">
+                          <TypewriterText text={suit.weaknesses} speed={20} />
+                        </p>
+                      </motion.div>
+                    )}
+                    {suit.upgrades && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.9 }}
+                        className="p-2 rounded bg-green-500/10 border border-green-500/30"
+                      >
+                        <p className="font-semibold text-green-600 dark:text-green-400 text-xs mb-1">Upgrades</p>
+                        <p className="text-xs text-green-600 dark:text-green-400">
+                          <TypewriterText text={suit.upgrades} speed={20} />
+                        </p>
+                      </motion.div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Notable Moments */}
+              <motion.div variants={itemVariants}>
+                <Card className="bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/30">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-purple-500" />
+                      Notable Moments
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      {suit.notableMoments.map((moment: string, i: number) => (
+                        <motion.li
+                          key={i}
+                          className="flex gap-2 text-xs p-2 rounded bg-purple-500/5 border border-purple-500/20"
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 1 + i * 0.1 }}
+                          whileHover={{ x: 4, backgroundColor: 'rgba(168, 85, 247, 0.15)' }}
+                        >
+                          <span className="text-purple-500 font-bold flex-shrink-0">{i + 1}.</span>
+                          <span>{moment}</span>
+                        </motion.li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center justify-center h-full text-muted-foreground"
+            >
+              <p className="text-sm">Select a suit to view details</p>
+            </motion.div>
+          )}
+        </motion.div>
+      </div>
+    </div>
+  );
+}
           {(isSuitLoading || isSuitFetching) && !suit ? (
             <motion.div
               initial={{ opacity: 0 }}
