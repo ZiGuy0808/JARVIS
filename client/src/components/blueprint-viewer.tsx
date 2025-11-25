@@ -94,16 +94,16 @@ export function BlueprintViewer() {
   const glowColor = suit ? getSuitColorHex(suit.color) : '#0EA5E9';
 
   return (
-    <div className="w-full h-full flex flex-col gap-4 p-4 bg-gradient-to-b from-background to-background/80">
+    <div className="w-full h-full flex flex-col gap-2 md:gap-4 p-2 md:p-4 bg-gradient-to-b from-background to-background/80">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between mb-2"
+        className="flex items-center justify-between mb-1"
       >
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Iron Man Blueprint Gallery</h2>
-          <p className="text-sm text-muted-foreground">All {suits.length} Suits</p>
+          <h2 className="text-lg md:text-2xl font-bold text-foreground">Iron Man Gallery</h2>
+          <p className="text-xs md:text-sm text-muted-foreground">{suits.length} Suits</p>
         </div>
       </motion.div>
 
@@ -115,24 +115,24 @@ export function BlueprintViewer() {
         className="flex gap-2"
       >
         <Input
-          placeholder="Search suits by name, film, or capability..."
+          placeholder="Search suits..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1"
+          className="flex-1 text-xs md:text-sm"
           data-testid="input-blueprint-search"
         />
       </motion.div>
 
-      {/* Two Panel Layout */}
-      <div className="flex-1 flex gap-4 overflow-hidden min-h-0">
+      {/* Two Panel Layout - Responsive */}
+      <div className="flex-1 flex flex-col md:flex-row gap-2 md:gap-4 overflow-hidden min-h-0">
         {/* Left: 3D Grid of All Suits */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
-          className="flex-1 overflow-y-auto border rounded-lg bg-card/30 backdrop-blur p-4"
+          className="flex-1 md:flex-1 overflow-y-auto border rounded-lg bg-card/30 backdrop-blur p-2 md:p-4"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4">
             {suits.map((s: IronManSuit, idx: number) => (
               <motion.div
                 key={s.markNumber}
@@ -159,10 +159,10 @@ export function BlueprintViewer() {
                 </div>
 
                 {/* Suit Info Below */}
-                <div className="px-3 pb-3 text-center border-t border-primary/20 pt-2">
+                <div className="px-2 md:px-3 pb-2 md:pb-3 text-center border-t border-primary/20 pt-1 md:pt-2">
                   <h3 className="font-rajdhani font-bold text-xs truncate">{s.name}</h3>
-                  <p className="text-xs text-muted-foreground">{s.filmIntroduced}</p>
-                  <div className="mt-2 flex justify-center">
+                  <p className="text-xs text-muted-foreground text-[0.65rem]">{s.filmIntroduced}</p>
+                  <div className="mt-1 md:mt-2 flex justify-center">
                     <Badge
                       className={`text-xs ${getStatusColor(s.status)}`}
                       data-testid={`badge-suit-status-${s.status}`}
@@ -182,12 +182,12 @@ export function BlueprintViewer() {
           )}
         </motion.div>
 
-        {/* Right: Detailed View */}
+        {/* Right: Detailed View - Hidden on mobile */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-96 overflow-y-auto border rounded-lg bg-card/30 backdrop-blur"
+          className="hidden md:flex md:flex-col md:w-96 overflow-y-auto border rounded-lg bg-card/30 backdrop-blur"
         >
           {(isSuitLoading || isSuitFetching) && !suit ? (
             <motion.div

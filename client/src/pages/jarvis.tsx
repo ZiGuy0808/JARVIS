@@ -395,9 +395,23 @@ export default function JarvisPage() {
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="h-[500px] md:h-[600px] overflow-hidden rounded-lg border border-cyan-500/30 bg-background/50 backdrop-blur-sm"
+                className="flex-1 flex flex-col rounded-lg border border-cyan-500/30 bg-background/50 backdrop-blur-sm min-h-0 md:h-[600px]"
               >
-                <BlueprintViewer />
+                {/* Mobile Header with Close */}
+                <div className="lg:hidden flex items-center justify-between gap-2 p-3 border-b border-cyan-500/20 flex-shrink-0">
+                  <h3 className="font-orbitron text-sm text-cyan-400">Holographic Blueprints</h3>
+                  <button
+                    onClick={() => setShowBlueprints(false)}
+                    className="px-3 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 rounded text-cyan-400 text-xs font-orbitron transition-colors"
+                    data-testid="button-close-blueprints"
+                  >
+                    Close
+                  </button>
+                </div>
+                {/* Content */}
+                <div className="flex-1 overflow-hidden lg:overflow-visible">
+                  <BlueprintViewer />
+                </div>
               </motion.div>
             )}
 
@@ -407,9 +421,23 @@ export default function JarvisPage() {
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="max-h-96 overflow-y-auto"
+                className="flex-1 flex flex-col rounded-lg border border-primary/30 bg-background/50 backdrop-blur-sm min-h-0 md:max-h-96 md:overflow-y-auto"
               >
-                <StarkScan data={scanData} />
+                {/* Mobile Header with Close */}
+                <div className="lg:hidden flex items-center justify-between gap-2 p-3 border-b border-primary/20 flex-shrink-0">
+                  <h3 className="font-orbitron text-sm text-primary">Stark Scan</h3>
+                  <button
+                    onClick={() => setShowScan(false)}
+                    className="px-3 py-1.5 bg-primary/20 hover:bg-primary/30 border border-primary/40 rounded text-primary text-xs font-orbitron transition-colors"
+                    data-testid="button-close-stark-scan"
+                  >
+                    Close
+                  </button>
+                </div>
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto">
+                  <StarkScan data={scanData} />
+                </div>
               </motion.div>
             )}
 

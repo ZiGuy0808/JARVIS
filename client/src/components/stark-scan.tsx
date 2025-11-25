@@ -32,7 +32,7 @@ interface StarkScanProps {
 
 export function StarkScan({ data }: StarkScanProps) {
   return (
-    <div className="w-full bg-gradient-to-br from-primary/10 via-background to-primary/5 rounded-lg border border-primary/20 p-6 overflow-auto">
+    <div className="w-full bg-gradient-to-br from-primary/10 via-background to-primary/5 p-3 md:p-6 overflow-auto">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -59,7 +59,7 @@ export function StarkScan({ data }: StarkScanProps) {
         </div>
 
         {/* Main Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           {/* Left: Physical Status */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -68,11 +68,11 @@ export function StarkScan({ data }: StarkScanProps) {
             className="space-y-4"
           >
             {/* Outfit & Suit */}
-            <div className="bg-card/40 border border-primary/15 rounded-lg p-4 backdrop-blur-sm">
-              <h3 className="text-xs font-orbitron uppercase text-primary/80 mb-3 tracking-wider">
+            <div className="bg-card/40 border border-primary/15 rounded-lg p-3 md:p-4 backdrop-blur-sm">
+              <h3 className="text-xs font-orbitron uppercase text-primary/80 mb-2 md:mb-3 tracking-wider">
                 Current Attire
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-1.5 md:space-y-2">
                 <div>
                   <p className="text-xs text-muted-foreground">SUIT:</p>
                   <p className="text-sm font-rajdhani text-foreground">{data.suit}</p>
@@ -85,11 +85,11 @@ export function StarkScan({ data }: StarkScanProps) {
             </div>
 
             {/* Mood & Activity */}
-            <div className="bg-card/40 border border-primary/15 rounded-lg p-4 backdrop-blur-sm">
-              <h3 className="text-xs font-orbitron uppercase text-primary/80 mb-3 tracking-wider">
+            <div className="bg-card/40 border border-primary/15 rounded-lg p-3 md:p-4 backdrop-blur-sm">
+              <h3 className="text-xs font-orbitron uppercase text-primary/80 mb-2 md:mb-3 tracking-wider">
                 Status Report
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-1.5 md:space-y-2">
                 <div>
                   <p className="text-xs text-muted-foreground">MOOD:</p>
                   <p className="text-sm font-rajdhani text-foreground font-semibold">{data.mood}</p>
