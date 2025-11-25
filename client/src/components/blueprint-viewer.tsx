@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { HolographicSuit3D } from '@/components/holographic-suit-3d';
 import { ChevronRight, Zap, Shield, Cpu } from 'lucide-react';
 
@@ -65,10 +64,10 @@ export function BlueprintViewer() {
   return (
     <div className="w-full h-full flex flex-col gap-4 p-4 bg-gradient-to-b from-background to-background/80">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Holographic Blueprint Viewer</h2>
-          <p className="text-sm text-muted-foreground">Explore Iron Man suit specifications and history</p>
+          <p className="text-sm text-muted-foreground">All {suits.length} Iron Man Suits</p>
         </div>
       </div>
 
@@ -83,105 +82,119 @@ export function BlueprintViewer() {
         />
       </div>
 
-      <div className="flex-1 flex gap-4 overflow-hidden">
-        {/* Suit List */}
-        <div className="w-80 overflow-y-auto border rounded-lg bg-card/50 backdrop-blur">
-          <div className="sticky top-0 bg-background/80 backdrop-blur border-b p-3 z-10">
-            <p className="text-sm font-semibold">{suits?.length || 0} Suits Available</p>
-          </div>
-          <div className="divide-y">
-            {suits?.map((s: IronManSuit) => (
-              <button
+      {/* Two Panel Layout */}
+      <div className="flex-1 flex gap-4 overflow-hidden min-h-0">
+        {/* Left: 3D Grid of All Suits */}
+        <div className="flex-1 overflow-y-auto border rounded-lg bg-card/30 backdrop-blur p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {suits.map((s: IronManSuit) => (
+              <div
                 key={s.markNumber}
                 onClick={() => setSelectedMark(s.markNumber)}
-                className={`w-full p-3 text-left hover-elevate transition-colors ${
-                  selectedMark === s.markNumber ? 'bg-primary/20 border-l-2 border-primary' : 'hover:bg-accent/10'
+                className={`cursor-pointer rounded-lg border-2 transition-all hover-elevate ${
+                  selectedMark === s.markNumber
+                    ? 'border-cyan-500/80 bg-cyan-500/10'
+                    : 'border-primary/30 hover:border-primary/60'
                 }`}
-                data-testid={`button-select-suit-${s.markNumber}`}
+                data-testid={`suit-card-3d-${s.markNumber}`}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate">{s.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{s.filmIntroduced}</p>
-                  </div>
-                  {selectedMark === s.markNumber && <ChevronRight className="w-4 h-4 flex-shrink-0" />}
+                {/* 3D Model Container */}
+                <div className="p-2">
+                  <HolographicSuit3D
+                    suitName={s.name}
+                    color={s.color}
+                    markNumber={s.markNumber}
+                  />
                 </div>
-              </button>
+
+                {/* Suit Info Below 3D Model */}
+                <div className="px-3 pb-3 text-center border-t border-primary/20 pt-2">
+                  <h3 className="font-rajdhani font-bold text-xs truncate">{s.name}</h3>
+                  <p className="text-xs text-muted-foreground">{s.filmIntroduced}</p>
+                  <div className="mt-2 flex justify-center">
+                    <Badge
+                      className={`text-xs ${getStatusColor(s.status)}`}
+                      data-testid={`badge-suit-status-${s.status}`}
+                    >
+                      {s.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
+
+          {suits.length === 0 && (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              <p>No suits found</p>
+            </div>
+          )}
         </div>
 
-        {/* Detail View */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Right: Detailed View */}
+        <div className="w-96 overflow-y-auto border rounded-lg bg-card/30 backdrop-blur">
           {isSuitLoading ? (
-            <Card className="h-full flex items-center justify-center">
+            <Card className="m-4 flex items-center justify-center min-h-96">
               <div className="text-center">
                 <Cpu className="w-12 h-12 mx-auto mb-2 animate-spin text-muted-foreground" />
                 <p className="text-muted-foreground">Loading blueprint...</p>
               </div>
             </Card>
           ) : suit ? (
-            <div className="space-y-4">
-              {/* 3D Holographic Suit Viewer */}
-              <HolographicSuit3D
-                suitName={suit.name}
-                color={suit.color}
-                markNumber={suit.markNumber}
-              />
+            <div className="p-4 space-y-4">
               {/* Main Suit Card */}
               <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/30">
                 <CardHeader>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <CardTitle className="text-3xl">{suit.name}</CardTitle>
-                      <CardDescription className="text-base">{suit.specialization}</CardDescription>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-xl truncate">{suit.name}</CardTitle>
+                      <CardDescription className="text-xs">{suit.specialization}</CardDescription>
                     </div>
-                    <Badge className={getStatusColor(suit.status)} data-testid={`badge-suit-status-${suit.status}`}>
+                    <Badge className={getStatusColor(suit.status)} data-testid={`badge-suit-status-detail-${suit.status}`}>
                       {suit.status}
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase">Film Introduced</p>
-                      <p className="text-sm font-medium">{suit.filmIntroduced}</p>
+                      <p className="font-semibold text-muted-foreground">Film</p>
+                      <p className="font-medium">{suit.filmIntroduced}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase">Color Scheme</p>
+                      <p className="font-semibold text-muted-foreground">Color</p>
                       <div className="flex items-center gap-2 mt-1">
                         <div
-                          className="w-6 h-6 rounded border"
+                          className="w-4 h-4 rounded border"
                           style={{ backgroundColor: suit.color === 'Red and Gold' ? '#DC2626' : '#999' }}
-                          data-testid={`div-suit-color-${suit.markNumber}`}
                         />
-                        <span className="text-sm">{suit.color}</span>
+                        <span className="text-xs">{suit.color}</span>
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Technical Specifications */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Zap className="w-5 h-5" />
-                    Technical Specifications
+              {/* Technical Specs */}
+              <Card className="bg-card/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Zap className="w-4 h-4" />
+                    Specs
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-2 text-xs">
                   <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Armor Material</p>
-                    <p className="text-sm">{suit.technicalSpecs.armor}</p>
+                    <p className="font-semibold text-muted-foreground">Armor</p>
+                    <p>{suit.technicalSpecs.armor}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Power Source</p>
-                    <p className="text-sm">{suit.technicalSpecs.power}</p>
+                    <p className="font-semibold text-muted-foreground">Power</p>
+                    <p>{suit.technicalSpecs.power}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Capabilities</p>
-                    <div className="flex flex-wrap gap-2">
+                    <p className="font-semibold text-muted-foreground mb-1">Capabilities</p>
+                    <div className="flex flex-wrap gap-1">
                       {suit.technicalSpecs.capabilities.map((cap: string) => (
                         <Badge key={cap} variant="secondary" className="text-xs">
                           {cap}
@@ -192,20 +205,20 @@ export function BlueprintViewer() {
                 </CardContent>
               </Card>
 
-              {/* Combat Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Shield className="w-5 h-5" />
-                    Combat Information
+              {/* Combat Info */}
+              <Card className="bg-card/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Shield className="w-4 h-4" />
+                    Combat
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-2 text-xs">
                   <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Key Usages</p>
+                    <p className="font-semibold text-muted-foreground mb-1">Key Usages</p>
                     <ul className="space-y-1">
                       {suit.keyUsages.map((usage: string, i: number) => (
-                        <li key={i} className="text-sm flex gap-2">
+                        <li key={i} className="flex gap-2">
                           <span className="text-primary">•</span>
                           <span>{usage}</span>
                         </li>
@@ -214,28 +227,28 @@ export function BlueprintViewer() {
                   </div>
                   {suit.weaknesses && (
                     <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Weaknesses</p>
-                      <p className="text-sm text-orange-600 dark:text-orange-400">{suit.weaknesses}</p>
+                      <p className="font-semibold text-orange-600 dark:text-orange-400">Weaknesses</p>
+                      <p className="text-orange-600 dark:text-orange-400">{suit.weaknesses}</p>
                     </div>
                   )}
                   {suit.upgrades && (
                     <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Key Upgrades</p>
-                      <p className="text-sm text-green-600 dark:text-green-400">{suit.upgrades}</p>
+                      <p className="font-semibold text-green-600 dark:text-green-400">Upgrades</p>
+                      <p className="text-green-600 dark:text-green-400">{suit.upgrades}</p>
                     </div>
                   )}
                 </CardContent>
               </Card>
 
               {/* Notable Moments */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Notable Moments</CardTitle>
+              <Card className="bg-card/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Notable Moments</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-2">
+                  <ul className="space-y-1 text-xs">
                     {suit.notableMoments.map((moment: string, i: number) => (
-                      <li key={i} className="text-sm flex gap-2">
+                      <li key={i} className="flex gap-2">
                         <span className="text-primary font-bold">{i + 1}.</span>
                         <span>{moment}</span>
                       </li>
@@ -245,11 +258,9 @@ export function BlueprintViewer() {
               </Card>
             </div>
           ) : (
-            <Card className="h-full flex items-center justify-center">
-              <div className="text-center">
-                <p className="text-muted-foreground">Select a suit to view its blueprint</p>
-              </div>
-            </Card>
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              <p className="text-sm">Select a suit to view details</p>
+            </div>
           )}
         </div>
       </div>
