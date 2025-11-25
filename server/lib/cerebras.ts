@@ -57,7 +57,7 @@ export async function callCerebras(
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'llama3.1-70b',
+        model: 'llama-3.1-70b',
         messages,
         temperature: 0.8,
         max_tokens: 500,
