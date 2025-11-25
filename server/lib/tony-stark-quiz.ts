@@ -249,3 +249,83 @@ export function getRandomUnusedQuestion(usedIds: Set<number>): TonySurvivalQuest
   
   return question;
 }
+
+export async function getExtremeWebSearchQuestion(usedIds: Set<number>, questionCount: number): Promise<TonySurvivalQuestion | null> {
+  // Only trigger web search after reaching extreme difficulty (10+ questions in endless mode)
+  if (questionCount < 10) {
+    return null;
+  }
+
+  // 40% chance to use web search for extreme questions
+  if (Math.random() > 0.4) {
+    return null;
+  }
+
+  const apiKey = process.env.TAVILY_API_KEY;
+  if (!apiKey) {
+    return null; // Fallback to regular questions if no API key
+  }
+
+  try {
+    const searchTopics = [
+      "What obscure Tony Stark detail appears in MCU deleted scenes",
+      "What rare Iron Man suit feature was mentioned only once",
+      "What Tony Stark improvised line became iconic in the MCU",
+      "What hidden Iron Man easter egg appears in Avengers",
+      "What technical specification of the arc reactor was revealed",
+      "What Robert Downey Jr ad-libbed in Iron Man 3",
+      "What obscure Mark suit number appears briefly in MCU",
+      "What Tony Stark habit was inspired by real life"
+    ];
+
+    const randomTopic = searchTopics[Math.floor(Math.random() * searchTopics.length)];
+    
+    const response = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: apiKey,
+        query: `Iron Man MCU ${randomTopic}`,
+        max_results: 2,
+        include_answer: true
+      })
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.answer && data.results && data.results.length > 0) {
+      const correctAnswer = data.answer.substring(0, 100); // Limit length
+      
+      // Generate plausible wrong answers
+      const wrongAnswers = [
+        "This was never mentioned in the MCU",
+        "This detail appears in the comics, not MCU",
+        "This is a common fan theory, not canon"
+      ];
+      
+      // Shuffle answers
+      const allAnswers = [correctAnswer, ...wrongAnswers];
+      const shuffled = allAnswers.sort(() => Math.random() - 0.5);
+      const correctIndex = shuffled.indexOf(correctAnswer);
+      
+      return {
+        id: 10000 + questionCount,
+        question: `🔍 EXTREME WEB-SEARCHED: ${randomTopic}?`,
+        options: shuffled,
+        correct: correctIndex,
+        difficulty: 10,
+        category: "extreme-web-search",
+        explanation: `Based on web search: ${data.answer}`
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Failed to generate web search question:', error);
+    return null;
+  }
+}

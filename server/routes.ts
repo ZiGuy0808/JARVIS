@@ -270,7 +270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Jarvis Tony Stark Survival Quiz
-  app.get("/api/tony-quiz/next", (req, res) => {
+  app.get("/api/tony-quiz/next", async (req, res) => {
     try {
       const questionNumber = parseInt(req.query.question as string) || 1;
       const sessionId = (req.query.sessionId as string) || '';
@@ -280,8 +280,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let question;
       if (mode === 'endless') {
-        // For endless mode, get random unused question
-        question = getRandomUnusedQuestion(usedIds);
+        // For endless mode after 10 questions, occasionally use web-searched extreme questions
+        if (questionNumber >= 10) {
+          const { getExtremeWebSearchQuestion } = await import('./lib/tony-stark-quiz');
+          const webQuestion = await getExtremeWebSearchQuestion(usedIds, questionNumber);
+          if (webQuestion) {
+            question = webQuestion;
+          } else {
+            question = getRandomUnusedQuestion(usedIds);
+          }
+        } else {
+          question = getRandomUnusedQuestion(usedIds);
+        }
       } else {
         // For regular mode, use progressive difficulty
         question = getQuestionByDifficulty(questionNumber);
@@ -295,7 +305,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For endless mode, emphasize the extreme difficulty
       let difficultyIndicator = `Difficulty: ${question.difficulty}/10`;
       if (mode === 'endless') {
-        difficultyIndicator = '🔥 EXTREMELY HARD MODE - NO MERCY 🔥';
+        if (questionNumber >= 10) {
+          difficultyIndicator = '🔥💀 EXTREME MODE - WEB-SEARCHED NIGHTMARES 💀🔥';
+        } else {
+          difficultyIndicator = '🔥 EXTREMELY HARD MODE - NO MERCY 🔥';
+        }
       }
       
       res.json({ 
