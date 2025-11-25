@@ -52,6 +52,22 @@ export default function JarvisPage() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    // Fetch initial Stark Scan data
+    const fetchScanData = async () => {
+      try {
+        const response = await fetch('/api/stark-scan');
+        const data = await response.json();
+        setScanData(data);
+      } catch (error) {
+        console.error('Failed to fetch Stark Scan data:', error);
+      }
+    };
+    
+    fetchScanData();
+    
+    // Refresh scan data every 5 seconds to show changing stats
+    const interval = setInterval(fetchScanData, 5000);
+
     // Initialize speech recognition with feature detection
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     
@@ -108,8 +124,9 @@ export default function JarvisPage() {
           // Ignore errors during cleanup
         }
       }
+      clearInterval(interval);
     };
-  }, []);
+  }, [toast]);
 
   const chatMutation = useMutation({
     mutationFn: async (userMessage: string) => {
@@ -287,6 +304,18 @@ export default function JarvisPage() {
           <div className="lg:w-96 lg:flex lg:flex-col gap-2 md:gap-4 hidden lg:flex flex-shrink-0 overflow-y-auto">
             <DashboardWidgets />
             <TonyTracker />
+            {/* Stark Scan Toggle on Desktop */}
+            {scanData && (
+              <motion.button
+                onClick={() => setShowScan(!showScan)}
+                className="w-full px-4 py-2 bg-primary/20 border border-primary/40 hover:bg-primary/30 rounded-lg text-sm font-orbitron text-primary transition-colors"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                data-testid="button-toggle-stark-scan"
+              >
+                {showScan ? 'Hide Stark Scan' : 'Show Stark Scan'}
+              </motion.button>
+            )}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -304,8 +333,20 @@ export default function JarvisPage() {
               <TonyTracker />
             </div>
 
+            {/* Stark Scan Modal/Overlay */}
+            {showScan && scanData && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="max-h-96 overflow-y-auto"
+              >
+                <StarkScan data={scanData} />
+              </motion.div>
+            )}
+
             {/* Chat - Takes all remaining space */}
-            <div className="flex-1 min-h-0 overflow-hidden">
+            <div className={`flex-1 min-h-0 overflow-hidden ${showScan ? 'hidden md:block' : ''}`}>
               <ChatInterface 
                 messages={messages}
                 onTypingComplete={handleTypingComplete}
@@ -314,6 +355,20 @@ export default function JarvisPage() {
 
             {/* Input Controls */}
             <div className="flex-shrink-0 space-y-2 pt-2 pb-safe">
+              {/* Stark Scan Toggle on Mobile */}
+              {scanData && (
+                <div className="flex justify-center lg:hidden">
+                  <motion.button
+                    onClick={() => setShowScan(!showScan)}
+                    className="px-4 py-2 bg-primary/20 border border-primary/40 hover:bg-primary/30 rounded-lg text-sm font-orbitron text-primary transition-colors"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    data-testid="button-toggle-stark-scan-mobile"
+                  >
+                    {showScan ? '← Back to Chat' : 'Stark Scan →'}
+                  </motion.button>
+                </div>
+              )}
               <div className="flex justify-center">
                 <VoiceButton
                   isRecording={isRecording}
