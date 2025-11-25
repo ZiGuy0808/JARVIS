@@ -13,8 +13,10 @@ export function TonyTracker() {
   });
 
   const globeEl = useRef<any>();
+  const containerRef = useRef<HTMLDivElement>(null);
   const [globeReady, setGlobeReady] = useState(false);
   const [useGlobe, setUseGlobe] = useState(true);
+  const [dimensions, setDimensions] = useState({ width: 400, height: 300 });
 
   useEffect(() => {
     // Check WebGL support
@@ -23,6 +25,24 @@ export function TonyTracker() {
     if (!gl) {
       setUseGlobe(false);
     }
+  }, []);
+
+  useEffect(() => {
+    // Update dimensions on mount and resize
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setDimensions({ width: Math.max(rect.width, 300), height: Math.max(rect.height, 250) });
+      }
+    };
+
+    updateDimensions();
+    const resizeObserver = new ResizeObserver(updateDimensions);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => resizeObserver.disconnect();
   }, []);
 
   useEffect(() => {
@@ -76,7 +96,8 @@ export function TonyTracker() {
         </div>
 
         <div 
-          className="relative w-full h-48 md:h-64 bg-background/50 rounded-lg border border-primary/10 overflow-hidden"
+          ref={containerRef}
+          className="relative w-full h-48 md:h-56 bg-background/50 rounded-lg border border-primary/10 overflow-hidden"
           data-testid="map-container"
         >
           {useGlobe && activity ? (
@@ -112,8 +133,8 @@ export function TonyTracker() {
                   return el;
                 }}
                 onGlobeReady={() => setGlobeReady(true)}
-                width={undefined}
-                height={undefined}
+                width={dimensions.width}
+                height={dimensions.height}
                 animateIn={true}
               />
             </Suspense>

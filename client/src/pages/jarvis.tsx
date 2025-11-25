@@ -194,50 +194,48 @@ export default function JarvisPage() {
       <div className="fixed inset-0 bg-gradient-to-br from-background via-background to-primary/5" style={{ zIndex: 0 }} />
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" style={{ zIndex: 0 }} />
 
-      <div className="relative z-10 container mx-auto px-2 md:px-4 py-3 md:py-6 max-w-7xl h-screen flex flex-col">
+      <div className="relative z-10 w-full h-screen flex flex-col">
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-3 md:mb-6 relative flex-shrink-0"
+          className="px-2 md:px-4 py-2 md:py-3 relative flex-shrink-0 border-b border-primary/10"
         >
-          <div className="absolute right-0 top-0">
+          <div className="absolute right-4 top-2">
             <ThemeToggle />
           </div>
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-orbitron font-bold text-center bg-gradient-to-r from-primary via-primary to-primary/50 bg-clip-text text-transparent">
+          <h1 className="text-2xl md:text-4xl lg:text-5xl font-orbitron font-bold text-center bg-gradient-to-r from-primary via-primary to-primary/50 bg-clip-text text-transparent">
             J.A.R.V.I.S.
           </h1>
-          <p className="text-center text-xs md:text-sm text-muted-foreground font-rajdhani tracking-wider mt-1">
-            JUST A RATHER VERY INTELLIGENT SYSTEM
+          <p className="text-center text-xs md:text-sm text-muted-foreground font-rajdhani tracking-wider">
+            Just A Rather Very Intelligent System
           </p>
         </motion.header>
 
-        {/* Compact Info Row - Mobile optimized */}
-        <div className="mb-3 md:mb-6 flex-shrink-0 space-y-3 md:space-y-4">
-          {/* Dashboard Widgets - compact on mobile */}
-          <div className="md:mb-0">
+        {/* Main content area - flexible layout */}
+        <div className="flex-1 overflow-hidden flex flex-col lg:flex-row gap-2 md:gap-4 p-2 md:p-4 min-h-0">
+          {/* Left sidebar - Info panels (desktop) / top (mobile) */}
+          <div className="lg:w-96 lg:flex lg:flex-col gap-2 md:gap-4 hidden lg:flex flex-shrink-0 overflow-y-auto">
             <DashboardWidgets />
-          </div>
-
-          {/* Tony Tracker - compact on mobile */}
-          <div>
             <TonyTracker />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center justify-center flex-1"
+            >
+              <WaveformOrb isActive={isRecording || isProcessing} isSpeaking={isSpeaking} />
+            </motion.div>
           </div>
-        </div>
 
-        {/* Main Content - Chat takes priority */}
-        <div className="flex-1 flex flex-col lg:flex-row gap-3 md:gap-6 min-h-0 overflow-hidden">
-          {/* Waveform Orb - Desktop only */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="hidden lg:flex items-center justify-center lg:w-80 flex-shrink-0"
-          >
-            <WaveformOrb isActive={isRecording || isProcessing} isSpeaking={isSpeaking} />
-          </motion.div>
+          {/* Center/Main - Chat PROMINENT */}
+          <div className="flex-1 flex flex-col min-h-0 gap-2">
+            {/* Top info on mobile */}
+            <div className="lg:hidden flex flex-col gap-2 flex-shrink-0">
+              <DashboardWidgets />
+              <TonyTracker />
+            </div>
 
-          {/* Chat Interface - Full height, prominent */}
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            {/* Chat - Takes all remaining space */}
             <div className="flex-1 min-h-0 overflow-hidden">
               <ChatInterface 
                 messages={messages}
@@ -246,10 +244,9 @@ export default function JarvisPage() {
                 }}
               />
             </div>
-            
-            {/* Input Controls - Fixed at bottom on mobile */}
-            <div className="flex-shrink-0 space-y-3 pt-3 pb-safe">
-              {/* Voice Button */}
+
+            {/* Input Controls */}
+            <div className="flex-shrink-0 space-y-2 pt-2 pb-safe">
               <div className="flex justify-center">
                 <VoiceButton
                   isRecording={isRecording}
@@ -257,9 +254,7 @@ export default function JarvisPage() {
                   disabled={chatMutation.isPending || !voiceSupported}
                 />
               </div>
-
-              {/* Text Input - Always available */}
-              <div className="px-0 md:px-4">
+              <div className="px-0">
                 <TextInput
                   onSubmit={handleUserMessage}
                   disabled={chatMutation.isPending}
