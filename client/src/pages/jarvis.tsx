@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { WaveformOrb } from '@/components/waveform-orb';
 import { ChatInterface } from '@/components/chat-interface';
 import { DashboardWidgets } from '@/components/dashboard-widgets';
@@ -43,6 +44,7 @@ interface StarkScanData {
 }
 
 export default function JarvisPage() {
+  const [, navigate] = useLocation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -339,6 +341,16 @@ export default function JarvisPage() {
             >
               {showBlueprints ? 'Close Blueprints' : 'Holographic Blueprints'}
             </motion.button>
+            {/* Quiz Button on Desktop */}
+            <motion.button
+              onClick={() => navigate('/quiz')}
+              className="w-full px-4 py-2 bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30 rounded-lg text-sm font-orbitron text-purple-400 transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              data-testid="button-start-quiz"
+            >
+              MCU Quiz
+            </motion.button>
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -415,6 +427,17 @@ export default function JarvisPage() {
                   data-testid="button-toggle-blueprints-mobile"
                 >
                   {showBlueprints ? '← Prints' : 'Prints →'}
+                </motion.button>
+                <motion.button
+                  onClick={() => navigate('/quiz')}
+                  className={`flex-1 px-3 py-3 bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30 rounded-lg text-xs font-orbitron text-purple-400 transition-colors active:scale-95 ${
+                    device.isIPhone ? 'min-h-12 touch-target' : ''
+                  }`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  data-testid="button-start-quiz-mobile"
+                >
+                  Quiz
                 </motion.button>
               </div>
               <div className="flex justify-center">
