@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { HolographicSuit3D } from '@/components/holographic-suit-3d';
+import { SuitImageViewer } from '@/components/suit-image-viewer';
 import { ChevronRight, Zap, Shield, Cpu } from 'lucide-react';
 
 interface IronManSuit {
@@ -66,8 +66,8 @@ export function BlueprintViewer() {
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Holographic Blueprint Viewer</h2>
-          <p className="text-sm text-muted-foreground">All {suits.length} Iron Man Suits</p>
+          <h2 className="text-2xl font-bold text-foreground">Iron Man Blueprint Gallery</h2>
+          <p className="text-sm text-muted-foreground">All {suits.length} Suits with Holographic Images</p>
         </div>
       </div>
 
@@ -98,9 +98,9 @@ export function BlueprintViewer() {
                 }`}
                 data-testid={`suit-card-3d-${s.markNumber}`}
               >
-                {/* 3D Model Container */}
+                {/* Suit Image Container */}
                 <div className="p-2">
-                  <HolographicSuit3D
+                  <SuitImageViewer
                     suitName={s.name}
                     color={s.color}
                     markNumber={s.markNumber}
