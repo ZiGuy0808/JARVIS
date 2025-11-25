@@ -115,18 +115,27 @@ export function TonyTracker() {
                 htmlElement={(d: any) => {
                   const el = document.createElement('div');
                   el.innerHTML = `
-                    <div style="
-                      width: 20px;
-                      height: 20px;
-                      border-radius: 50%;
-                      background: radial-gradient(circle, rgba(0,255,255,1) 0%, rgba(0,255,255,0.5) 50%, rgba(0,255,255,0) 100%);
-                      box-shadow: 0 0 20px rgba(0,255,255,0.8);
-                      animation: pulse-marker 2s ease-in-out infinite;
-                    "></div>
+                    <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 0 8px rgba(0,255,255,0.8)); animation: arc-reactor-pulse 2s ease-in-out infinite;">
+                      <!-- Outer glow -->
+                      <circle cx="18" cy="18" r="16" fill="none" stroke="rgba(0,255,255,0.3)" stroke-width="2" opacity="0.6"/>
+                      <!-- Outer ring -->
+                      <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(0,255,255,0.6)" stroke-width="1.5"/>
+                      <!-- Middle ring -->
+                      <circle cx="18" cy="18" r="10" fill="none" stroke="rgba(0,255,255,0.7)" stroke-width="1.5"/>
+                      <!-- Inner ring -->
+                      <circle cx="18" cy="18" r="6" fill="none" stroke="rgba(0,255,255,0.8)" stroke-width="1.5"/>
+                      <!-- Core -->
+                      <circle cx="18" cy="18" r="3" fill="rgba(0,255,255,1)" opacity="0.9"/>
+                      <!-- Triangular segments (Arc reactor design) -->
+                      <path d="M 18 18 L 24 10 L 26 12" stroke="rgba(0,255,255,0.6)" stroke-width="0.8" fill="none"/>
+                      <path d="M 18 18 L 26 24 L 24 26" stroke="rgba(0,255,255,0.6)" stroke-width="0.8" fill="none"/>
+                      <path d="M 18 18 L 12 26 L 10 24" stroke="rgba(0,255,255,0.6)" stroke-width="0.8" fill="none"/>
+                      <path d="M 18 18 L 10 12 L 12 10" stroke="rgba(0,255,255,0.6)" stroke-width="0.8" fill="none"/>
+                    </svg>
                     <style>
-                      @keyframes pulse-marker {
-                        0%, 100% { transform: scale(1); opacity: 1; }
-                        50% { transform: scale(1.5); opacity: 0.7; }
+                      @keyframes arc-reactor-pulse {
+                        0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+                        50% { transform: scale(1.15) rotate(180deg); opacity: 0.9; }
                       }
                     </style>
                   `;
