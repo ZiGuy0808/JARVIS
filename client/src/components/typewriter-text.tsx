@@ -10,9 +10,19 @@ interface TypewriterTextProps {
 export function TypewriterText({ text = '', speed = 30, onComplete, className = '' }: TypewriterTextProps) {
   const [displayedText, setDisplayedText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [hasCompleted, setHasCompleted] = useState(false);
 
+  // Reset when text changes
   useEffect(() => {
-    if (!text) return;
+    console.log('📝 Text changed, resetting typewriter:', text.substring(0, 50));
+    setDisplayedText('');
+    setCurrentIndex(0);
+    setHasCompleted(false);
+  }, [text]);
+
+  // Main typing effect
+  useEffect(() => {
+    if (!text || hasCompleted) return;
     
     if (currentIndex < text.length) {
       const timeout = setTimeout(() => {
@@ -21,18 +31,14 @@ export function TypewriterText({ text = '', speed = 30, onComplete, className = 
       }, speed);
 
       return () => clearTimeout(timeout);
-    } else if (currentIndex === text.length && text.length > 0) {
-      // Call onComplete when typing finishes
+    } else if (currentIndex === text.length && text.length > 0 && !hasCompleted) {
+      console.log('✍️ Typing complete, calling onComplete:', text.substring(0, 50));
+      setHasCompleted(true);
       if (onComplete) {
         onComplete();
       }
     }
-  }, [currentIndex, text, speed, onComplete]);
-
-  useEffect(() => {
-    setDisplayedText('');
-    setCurrentIndex(0);
-  }, [text]);
+  }, [currentIndex, text, speed, onComplete, hasCompleted]);
 
   return <span className={className}>{displayedText}</span>;
 }

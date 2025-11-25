@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { WaveformOrb } from '@/components/waveform-orb';
 import { ChatInterface } from '@/components/chat-interface';
@@ -153,6 +153,28 @@ export default function JarvisPage() {
     chatMutation.mutate(text);
   };
 
+  const handleTypingComplete = useCallback(() => {
+    console.log('🎬 Typing complete callback fired');
+    setMessages(prev => {
+      const updated = [...prev];
+      let found = false;
+      for (let i = updated.length - 1; i >= 0; i--) {
+        if (updated[i].role === 'assistant' && updated[i].isTyping) {
+          console.log('✅ Marking message as done typing:', updated[i].content.substring(0, 50));
+          updated[i] = { ...updated[i], isTyping: false };
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        console.warn('⚠️ No typing message found to mark as complete');
+      }
+      return updated;
+    });
+    
+    setTimeout(() => setIsSpeaking(false), 500);
+  }, []);
+
   const toggleRecording = () => {
     if (!recognitionRef.current || !voiceSupported) {
       toast({
@@ -239,21 +261,7 @@ export default function JarvisPage() {
             <div className="flex-1 min-h-0 overflow-hidden">
               <ChatInterface 
                 messages={messages}
-                onTypingComplete={() => {
-                  // Mark the last assistant message as done typing
-                  setMessages(prev => {
-                    const updated = [...prev];
-                    for (let i = updated.length - 1; i >= 0; i--) {
-                      if (updated[i].role === 'assistant' && updated[i].isTyping) {
-                        updated[i] = { ...updated[i], isTyping: false };
-                        break;
-                      }
-                    }
-                    return updated;
-                  });
-                  
-                  setTimeout(() => setIsSpeaking(false), 500);
-                }}
+                onTypingComplete={handleTypingComplete}
               />
             </div>
 
