@@ -32,7 +32,7 @@ export function SuitImageViewer({ suitName, markNumber, color }: SuitImageViewer
   const imagePath = useMemo(() => {
     const imageName = SUIT_IMAGE_MAP[markNumber];
     if (imageName) {
-      return new URL(`../../../attached_assets/generated_images/${imageName}`, import.meta.url).href;
+      return `/generated_images/${imageName}`;
     }
     return null;
   }, [markNumber]);
@@ -75,7 +75,7 @@ export function SuitImageViewer({ suitName, markNumber, color }: SuitImageViewer
     <div className="flex flex-col items-center justify-center gap-2">
       {/* Image Container with Glow Effect */}
       <motion.div
-        className="relative w-full h-64 rounded-lg overflow-hidden border-2"
+        className="relative w-full h-40 md:h-64 rounded-lg overflow-hidden border-2"
         style={{
           borderColor: suitColorHex,
           background: `linear-gradient(135deg, ${suitColorHex}11 0%, ${suitColorHex}05 100%)`,
