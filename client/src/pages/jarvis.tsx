@@ -478,17 +478,6 @@ export default function JarvisPage() {
             </div>
           </div>
         </div>
-
-        {/* Mobile Orb - floating, smaller */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="lg:hidden fixed bottom-36 right-2 md:right-4 pointer-events-none z-20"
-        >
-          <div className="scale-[0.25] md:scale-[0.3]">
-            <WaveformOrb isActive={isRecording || isProcessing} isSpeaking={isSpeaking} />
-          </div>
-        </motion.div>
       </div>
     </div>
   );
