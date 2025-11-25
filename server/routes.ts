@@ -7,6 +7,7 @@ import { getTonyActivity } from "./lib/tony-activity";
 import { generateStarkScan } from "./lib/stark-scan";
 import { searchWeb } from "./lib/search";
 import { searchQuotes, getQuotesByFilm, getQuotesByContext, getAllFilms, getAllContexts } from "./lib/quotes";
+import { getSuitByMark, getSuitByName, searchSuits, getSuitsByFilm, getAllSuits } from "./lib/suits-database";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Chat endpoint
@@ -193,6 +194,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Contexts list error:', error);
       res.status(500).json({ error: 'Failed to fetch contexts list' });
+    }
+  });
+
+  // Holographic Blueprint endpoints
+  app.get("/api/blueprints/all", (_req, res) => {
+    try {
+      const suits = getAllSuits();
+      res.json({ suits, count: suits.length });
+    } catch (error) {
+      console.error('Blueprints list error:', error);
+      res.status(500).json({ error: 'Failed to fetch blueprints' });
+    }
+  });
+
+  app.get("/api/blueprints/mark/:number", (req, res) => {
+    try {
+      const markNumber = parseInt(req.params.number);
+      if (isNaN(markNumber)) {
+        return res.status(400).json({ error: 'Invalid Mark number' });
+      }
+      const suit = getSuitByMark(markNumber);
+      if (!suit) {
+        return res.status(404).json({ error: 'Suit not found' });
+      }
+      res.json({ suit });
+    } catch (error) {
+      console.error('Blueprint fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch blueprint' });
+    }
+  });
+
+  app.get("/api/blueprints/search", (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query) {
+        return res.status(400).json({ error: 'Search query required' });
+      }
+      const results = searchSuits(query);
+      res.json({ results, count: results.length });
+    } catch (error) {
+      console.error('Blueprint search error:', error);
+      res.status(500).json({ error: 'Failed to search blueprints' });
+    }
+  });
+
+  app.get("/api/blueprints/film", (req, res) => {
+    try {
+      const filmName = req.query.name as string;
+      if (!filmName) {
+        return res.status(400).json({ error: 'Film name required' });
+      }
+      const results = getSuitsByFilm(filmName);
+      res.json({ results, count: results.length });
+    } catch (error) {
+      console.error('Blueprint film search error:', error);
+      res.status(500).json({ error: 'Failed to fetch film blueprints' });
     }
   });
 

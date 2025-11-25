@@ -37,9 +37,10 @@ Preferred communication style: Simple, everyday language.
 - Animated particle background for depth
 - Waveform visualization orb for active/speaking states
 - Voice input support using Web Speech API
-- Real-time biometric scan displays (Stark Scan)
+- Real-time biometric scan displays (Stark Scan) with climate-aware values
+- Holographic Blueprint Viewer with 14 Iron Man suits from movies
 - Interactive globe visualization for Tony Tracker using react-globe.gl
-- Responsive design with mobile-first approach
+- Responsive design with mobile-first approach with toggle buttons for panels
 
 ### Backend Architecture
 
@@ -55,6 +56,10 @@ Preferred communication style: Simple, everyday language.
 - `/api/quotes/context?name=<contextName>` - Get quotes by thematic context
 - `/api/quotes/films` - List all films with available quotes
 - `/api/quotes/contexts` - List all available quote contexts
+- `/api/blueprints/all` - Get all Iron Man suits (14 total: Mark I through Mark LXXXV)
+- `/api/blueprints/mark/:number` - Get specific suit by Mark number
+- `/api/blueprints/search?q=<query>` - Search suits by name, film, or capability
+- `/api/blueprints/film?name=<filmName>` - Get all suits from a specific film
 
 **Development vs Production**:
 - Development: Vite dev server middleware integrated with Express for HMR and fast refresh
@@ -74,6 +79,9 @@ Preferred communication style: Simple, everyday language.
 - Weather data integration for environmental context
 - Climate-aware biometric system: body temperature, vitals, and outfit adapt to geography (hot climates = elevated temps/reduced O2, cold climates = lower temps/thermal stress)
 - Quote system allows natural integration into responses for authentic character dialogue
+- Holographic Blueprint system with 14 Iron Man suits (Mark I through Mark LXXXV)
+- Each suit includes: technical specs, armor materials, power sources, film debut, key usages, weaknesses, upgrades, and notable moments
+- Jarvis understands suit design philosophy and can answer "when does Tony wear this?" and explain technical choices based on Tony's character arc
 
 ### Data Storage Solutions
 

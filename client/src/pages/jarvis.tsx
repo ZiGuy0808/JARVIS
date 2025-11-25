@@ -5,6 +5,7 @@ import { ChatInterface } from '@/components/chat-interface';
 import { DashboardWidgets } from '@/components/dashboard-widgets';
 import { TonyTracker } from '@/components/tony-tracker';
 import { StarkScan } from '@/components/stark-scan';
+import { BlueprintViewer } from '@/components/blueprint-viewer';
 import { VoiceButton } from '@/components/voice-button';
 import { TextInput } from '@/components/text-input';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -46,6 +47,7 @@ export default function JarvisPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(true);
   const [showScan, setShowScan] = useState(false);
+  const [showBlueprints, setShowBlueprints] = useState(false);
   const [scanData, setScanData] = useState<StarkScanData | null>(null);
   const recognitionRef = useRef<any>(null);
   const { toast } = useToast();
@@ -316,6 +318,16 @@ export default function JarvisPage() {
                 {showScan ? 'Hide Stark Scan' : 'Show Stark Scan'}
               </motion.button>
             )}
+            {/* Blueprint Viewer Toggle on Desktop */}
+            <motion.button
+              onClick={() => setShowBlueprints(!showBlueprints)}
+              className="w-full px-4 py-2 bg-cyan-500/20 border border-cyan-500/40 hover:bg-cyan-500/30 rounded-lg text-sm font-orbitron text-cyan-400 transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              data-testid="button-toggle-blueprints"
+            >
+              {showBlueprints ? 'Close Blueprints' : 'Holographic Blueprints'}
+            </motion.button>
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -333,6 +345,18 @@ export default function JarvisPage() {
               <TonyTracker />
             </div>
 
+            {/* Blueprint Viewer Modal/Overlay */}
+            {showBlueprints && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="h-[500px] md:h-[600px] overflow-hidden rounded-lg border border-cyan-500/30 bg-background/50 backdrop-blur-sm"
+              >
+                <BlueprintViewer />
+              </motion.div>
+            )}
+
             {/* Stark Scan Modal/Overlay */}
             {showScan && scanData && (
               <motion.div
@@ -346,7 +370,7 @@ export default function JarvisPage() {
             )}
 
             {/* Chat - Takes all remaining space */}
-            <div className={`flex-1 min-h-0 overflow-hidden ${showScan ? 'hidden md:block' : ''}`}>
+            <div className={`flex-1 min-h-0 overflow-hidden ${(showScan || showBlueprints) ? 'hidden md:block' : ''}`}>
               <ChatInterface 
                 messages={messages}
                 onTypingComplete={handleTypingComplete}
@@ -355,20 +379,29 @@ export default function JarvisPage() {
 
             {/* Input Controls */}
             <div className="flex-shrink-0 space-y-2 pt-2 pb-safe">
-              {/* Stark Scan Toggle on Mobile */}
-              {scanData && (
-                <div className="flex justify-center lg:hidden">
+              {/* Toggles on Mobile */}
+              <div className="flex gap-2 justify-center lg:hidden">
+                {scanData && (
                   <motion.button
                     onClick={() => setShowScan(!showScan)}
-                    className="px-4 py-2 bg-primary/20 border border-primary/40 hover:bg-primary/30 rounded-lg text-sm font-orbitron text-primary transition-colors"
+                    className="flex-1 px-3 py-2 bg-primary/20 border border-primary/40 hover:bg-primary/30 rounded-lg text-xs font-orbitron text-primary transition-colors"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     data-testid="button-toggle-stark-scan-mobile"
                   >
-                    {showScan ? '← Back to Chat' : 'Stark Scan →'}
+                    {showScan ? '← Scan' : 'Scan →'}
                   </motion.button>
-                </div>
-              )}
+                )}
+                <motion.button
+                  onClick={() => setShowBlueprints(!showBlueprints)}
+                  className="flex-1 px-3 py-2 bg-cyan-500/20 border border-cyan-500/40 hover:bg-cyan-500/30 rounded-lg text-xs font-orbitron text-cyan-400 transition-colors"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  data-testid="button-toggle-blueprints-mobile"
+                >
+                  {showBlueprints ? '← Prints' : 'Prints →'}
+                </motion.button>
+              </div>
               <div className="flex justify-center">
                 <VoiceButton
                   isRecording={isRecording}
