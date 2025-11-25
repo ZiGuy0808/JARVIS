@@ -261,74 +261,47 @@ export async function getExtremeWebSearchQuestion(usedIds: Set<number>, question
     return null;
   }
 
-  const apiKey = process.env.TAVILY_API_KEY;
-  if (!apiKey) {
-    console.warn('Tavily API key not found, skipping web search');
-    return null;
-  }
-
   try {
-    // Search for obscure Tony Stark MCU facts using Tavily
+    const { searchWeb } = await import('./search');
+    const { callCerebras } = await import('./cerebras');
+
+    // Search queries for obscure MCU facts
     const searchQueries = [
-      "Tony Stark obscure MCU facts hidden details",
-      "Iron Man suit Mark numbers specifications MCU",
-      "Tony Stark deleted scenes cut content MCU",
-      "Arc Reactor specifications Tony Stark technology",
-      "Iron Man Easter eggs Tony Stark MCU references",
-      "Tony Stark cameo appearances MCU films",
-      "Iron Man suit capabilities strengths weaknesses",
-      "Tony Stark character development PTSD MCU"
+      "Tony Stark suit specifications Arc Reactor power output",
+      "Iron Man Mark suit Easter eggs MCU details",
+      "Tony Stark PTSD character moments MCU films",
+      "Iron Man technology Vibranium nanotechnology evolution",
+      "Tony Stark deleted scenes cut footage MCU",
+      "Avengers endgame Iron Man sacrifice Arc Reactor details",
+      "Mark LXXXV suit capabilities specifications endgame",
+      "Tony Stark cameo appearances MCU timeline"
     ];
 
     const randomQuery = searchQueries[Math.floor(Math.random() * searchQueries.length)];
 
-    // Search for real MCU information
-    const searchResponse = await fetch('https://api.tavily.com/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: apiKey,
-        query: randomQuery,
-        max_results: 3,
-        include_answer: true
-      })
-    });
-
-    if (!searchResponse.ok) {
+    // Get real web search result
+    const searchResult = await searchWeb(randomQuery);
+    
+    if (!searchResult || searchResult.includes("unable to search") || searchResult.length < 30) {
       return null;
     }
 
-    const searchData: any = await searchResponse.json();
+    // Use Cerebras to convert the real fact into an EXTREMELY difficult quiz question
+    const transformPrompt = `You found this real MCU fact during research: "${searchResult}"
 
-    // Extract factual information
-    if (!searchData.results || searchData.results.length === 0) {
-      return null;
-    }
-
-    // Get main answer and supporting context
-    const mainFact = searchData.answer || searchData.results[0].content;
-    if (!mainFact || mainFact.length < 20) {
-      return null;
-    }
-
-    // Use Cerebras to transform the search result into a question
-    const { callCerebras } = await import('./cerebras');
-
-    const transformPrompt = `Based on this MCU fact about Tony Stark or Iron Man: "${mainFact}"
-
-Create an EXTREMELY difficult multiple choice trivia question. Format EXACTLY as:
-QUESTION: [The extremely hard trivia question - must be specific and challenging]
-CORRECT: [The correct answer derived from the fact above]
-WRONG1: [Plausible wrong answer that sounds similar but is incorrect]
-WRONG2: [Another plausible wrong answer with similar theme]
-WRONG3: [Third plausible wrong answer that could confuse experts]
+Convert this into an EXTREMELY difficult multiple choice quiz question. Format EXACTLY as:
+QUESTION: [Create a specific, challenging question about this MCU fact - must be factually grounded]
+CORRECT: [The correct answer - MUST be directly from or logically derived from the fact above]
+WRONG1: [Plausible wrong answer similar to correct but factually incorrect]
+WRONG2: [Another plausible wrong answer that could confuse MCU fans]
+WRONG3: [A third wrong answer with similar theme but incorrect]
 
 Requirements:
-- Question must be EXTREMELY hard and specific
-- Answers must be factually grounded - at least CORRECT must be from the search results
-- All options must sound plausible to MCU fans
-- Include specific numbers, names, details from the MCU
-- Make it impossible to guess without deep knowledge`;
+- Question must be EXTREMELY hard - only hardcore MCU fans would know
+- CORRECT answer MUST be based on the real MCU fact provided
+- All options must be plausible and sound factual
+- Include specific numbers, suit marks, or technical details when possible
+- Make it impossible to guess - requires actual MCU knowledge`;
 
     const { response } = await callCerebras(transformPrompt, [], undefined, undefined, '');
 
