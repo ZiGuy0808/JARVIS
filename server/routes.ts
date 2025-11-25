@@ -8,7 +8,7 @@ import { generateStarkScan } from "./lib/stark-scan";
 import { searchWeb } from "./lib/search";
 import { searchQuotes, getQuotesByFilm, getQuotesByContext, getAllFilms, getAllContexts } from "./lib/quotes";
 import { getSuitByMark, getSuitByName, searchSuits, getSuitsByFilm, getAllSuits } from "./lib/suits-database";
-import { MCU_QUIZ_QUESTIONS, getQuizzesByDifficulty, getRandomQuiz } from "./lib/mcu-quiz";
+import { getQuestionByDifficulty, getRandomRoast, getRandomEncouragement, getRandomQuote } from "./lib/tony-stark-quiz";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Chat endpoint
@@ -254,29 +254,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // MCU Quiz endpoints
-  app.get("/api/quiz", (req, res) => {
+  // Jarvis Tony Stark Survival Quiz - Endless mode
+  app.get("/api/tony-quiz/next", (req, res) => {
     try {
-      const difficulty = req.query.difficulty as string || 'random';
+      const questionNumber = parseInt(req.query.question as string) || 1;
+      const question = getQuestionByDifficulty(questionNumber);
       
-      let questions;
-      if (difficulty === 'random' || !['easy', 'medium', 'hard'].includes(difficulty)) {
-        questions = getRandomQuiz(10);
-      } else {
-        const byDiff = getQuizzesByDifficulty(difficulty as 'easy' | 'medium' | 'hard');
-        // Return up to 10 questions of the selected difficulty
-        questions = byDiff.slice(0, 10);
-        // If less than 10, mix with other difficulties
-        if (questions.length < 10) {
-          const others = MCU_QUIZ_QUESTIONS.filter(q => q.difficulty !== difficulty).slice(0, 10 - questions.length);
-          questions = [...questions, ...others];
-        }
-      }
-      
-      res.json({ questions, count: questions.length });
+      res.json({ 
+        question,
+        questionNumber,
+        jarvisEncouragement: getRandomEncouragement(),
+        jarvisQuote: getRandomQuote()
+      });
     } catch (error) {
-      console.error('Quiz error:', error);
-      res.status(500).json({ error: 'Failed to fetch quiz questions' });
+      console.error('Tony quiz error:', error);
+      res.status(500).json({ error: 'Failed to fetch question' });
+    }
+  });
+
+  // Check answer and get Jarvis response
+  app.post("/api/tony-quiz/check", (req, res) => {
+    try {
+      const { answer, correct } = req.body;
+      
+      if (answer === correct) {
+        res.json({ 
+          correct: true,
+          jarvisResponse: getRandomEncouragement()
+        });
+      } else {
+        res.json({ 
+          correct: false,
+          jarvisResponse: getRandomRoast(),
+          gameOver: true
+        });
+      }
+    } catch (error) {
+      console.error('Tony quiz check error:', error);
+      res.status(500).json({ error: 'Failed to check answer' });
     }
   });
 

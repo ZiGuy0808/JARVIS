@@ -1,111 +1,105 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Award, Target, TrendingUp } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ArrowLeft, Heart, Flame } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface QuizQuestion {
   id: number;
   question: string;
   options: string[];
   correct: number;
+  difficulty: number;
   category: string;
-  difficulty: string;
   explanation: string;
 }
 
 export default function QuizPage() {
   const [, navigate] = useLocation();
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [score, setScore] = useState(0);
+  const [state, setState] = useState<'menu' | 'playing' | 'lost' | 'loading'>('menu');
+  const [currentQuestion, setCurrentQuestion] = useState<QuizQuestion | null>(null);
+  const [questionNumber, setQuestionNumber] = useState(1);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
-  const [quizState, setQuizState] = useState<'menu' | 'loading' | 'playing' | 'finished'>('menu');
-  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard' | 'random'>('random');
+  const [jarvisMessage, setJarvisMessage] = useState('');
+  const [answerCorrect, setAnswerCorrect] = useState<boolean | null>(null);
 
-  const currentQ = questions[currentQuestion];
-  const progress = ((currentQuestion + 1) / questions.length) * 100;
+  useEffect(() => {
+    if (state === 'playing' && !currentQuestion) {
+      loadQuestion();
+    }
+  }, [state]);
 
-  const startQuiz = async (selectedDifficulty: 'easy' | 'medium' | 'hard' | 'random') => {
-    setDifficulty(selectedDifficulty);
-    setQuizState('loading');
-
-    // Load questions from server
+  const loadQuestion = async () => {
+    setState('loading');
     try {
-      const response = await fetch(`/api/quiz?difficulty=${selectedDifficulty}`);
+      const response = await fetch(`/api/tony-quiz/next?question=${questionNumber}`);
       const data = await response.json();
-      setQuestions(data.questions);
-      setCurrentQuestion(0);
-      setScore(0);
+      setCurrentQuestion(data.question);
+      setJarvisMessage(data.jarvisQuote);
       setSelectedAnswer(null);
       setShowExplanation(false);
-      setQuizState('playing');
+      setAnswerCorrect(null);
+      setState('playing');
     } catch (error) {
-      console.error('Failed to load quiz:', error);
-      setQuizState('menu');
+      console.error('Failed to load question:', error);
+      setState('menu');
     }
   };
 
-  const handleAnswer = (index: number) => {
+  const handleAnswer = async (index: number) => {
     setSelectedAnswer(index);
     setShowExplanation(true);
-    if (index === currentQ.correct) {
-      setScore(score + 1);
+
+    try {
+      const response = await fetch('/api/tony-quiz/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answer: index, correct: currentQuestion?.correct })
+      });
+      const data = await response.json();
+
+      if (data.correct) {
+        setAnswerCorrect(true);
+        setJarvisMessage(data.jarvisResponse);
+      } else {
+        setAnswerCorrect(false);
+        setJarvisMessage(data.jarvisResponse);
+        setTimeout(() => setState('lost'), 2000);
+      }
+    } catch (error) {
+      console.error('Failed to check answer:', error);
     }
   };
 
-  const goToNextQuestion = () => {
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-      setSelectedAnswer(null);
-      setShowExplanation(false);
-    } else {
-      setQuizState('finished');
+  const nextQuestion = () => {
+    if (answerCorrect) {
+      setQuestionNumber(questionNumber + 1);
+      setCurrentQuestion(null);
+      loadQuestion();
     }
+  };
+
+  const startQuiz = () => {
+    setQuestionNumber(1);
+    setCurrentQuestion(null);
+    setState('playing');
   };
 
   const resetQuiz = () => {
-    setQuizState('menu');
-    setQuestions([]);
-    setCurrentQuestion(0);
-    setScore(0);
+    setState('menu');
+    setQuestionNumber(1);
+    setCurrentQuestion(null);
     setSelectedAnswer(null);
     setShowExplanation(false);
-  };
-
-  const getDifficultyColor = (diff: string) => {
-    switch (diff) {
-      case 'easy':
-        return 'bg-green-500/20 text-green-600 dark:text-green-400';
-      case 'medium':
-        return 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400';
-      case 'hard':
-        return 'bg-red-500/20 text-red-600 dark:text-red-400';
-      default:
-        return 'bg-blue-500/20 text-blue-600 dark:text-blue-400';
-    }
-  };
-
-  const getCategoryColor = (cat: string) => {
-    switch (cat) {
-      case 'iron-man':
-        return 'bg-red-500/20 text-red-600 dark:text-red-400';
-      case 'tony-stark':
-        return 'bg-purple-500/20 text-purple-600 dark:text-purple-400';
-      case 'suits':
-        return 'bg-blue-500/20 text-blue-600 dark:text-blue-400';
-      case 'mcu':
-        return 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400';
-      default:
-        return 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-400';
-    }
+    setJarvisMessage('');
+    setAnswerCorrect(null);
   };
 
   // Menu
-  if (quizState === 'menu') {
+  if (state === 'menu') {
     return (
       <div className="w-full h-screen bg-gradient-to-b from-background to-background/80 flex items-center justify-center p-4">
         <motion.div
@@ -113,79 +107,81 @@ export default function QuizPage() {
           animate={{ opacity: 1, scale: 1 }}
           className="w-full max-w-2xl"
         >
-          <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/30">
+          <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/30 border-2">
             <CardHeader className="text-center">
-              <div className="flex items-center justify-center mb-4">
-                <Target className="w-12 h-12 text-primary" />
-              </div>
-              <CardTitle className="text-4xl">MCU Quiz</CardTitle>
-              <CardDescription className="text-base">
-                Test your Iron Man and MCU knowledge with Jarvis!
-              </CardDescription>
+              <motion.div
+                animate={{ rotate: [0, 5, -5, 0] }}
+                transition={{ duration: 4, repeat: Infinity }}
+                className="text-5xl mb-4"
+              >
+                J.A.R.V.I.S.
+              </motion.div>
+              <CardTitle className="text-4xl font-orbitron">
+                Tony Stark Survival Quiz
+              </CardTitle>
+              <p className="text-muted-foreground mt-2 font-rajdhani">
+                One Strike and You're Out. Can You Survive Jarvis's Interrogation?
+              </p>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-muted-foreground">Select Difficulty</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    onClick={() => startQuiz('easy')}
-                    className="h-auto py-4 flex flex-col items-center gap-1 bg-green-500/20 hover:bg-green-500/30 text-green-600 dark:text-green-400 border border-green-500/30"
-                    variant="outline"
-                    data-testid="button-quiz-easy"
-                  >
-                    <span className="font-bold">Easy</span>
-                    <span className="text-xs">10 questions</span>
-                  </Button>
-                  <Button
-                    onClick={() => startQuiz('medium')}
-                    className="h-auto py-4 flex flex-col items-center gap-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30"
-                    variant="outline"
-                    data-testid="button-quiz-medium"
-                  >
-                    <span className="font-bold">Medium</span>
-                    <span className="text-xs">10 questions</span>
-                  </Button>
-                  <Button
-                    onClick={() => startQuiz('hard')}
-                    className="h-auto py-4 flex flex-col items-center gap-1 bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 border border-red-500/30"
-                    variant="outline"
-                    data-testid="button-quiz-hard"
-                  >
-                    <span className="font-bold">Hard</span>
-                    <span className="text-xs">10 questions</span>
-                  </Button>
-                  <Button
-                    onClick={() => startQuiz('random')}
-                    className="h-auto py-4 flex flex-col items-center gap-1 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30"
-                    variant="outline"
-                    data-testid="button-quiz-random"
-                  >
-                    <span className="font-bold">Random</span>
-                    <span className="text-xs">Mixed difficulty</span>
-                  </Button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 pt-4 border-t">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-primary">20+</p>
-                  <p className="text-xs text-muted-foreground">MCU Questions</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-primary">3</p>
-                  <p className="text-xs text-muted-foreground">Difficulty Levels</p>
-                </div>
-              </div>
-
-              <Button
-                variant="outline"
-                onClick={() => navigate('/')}
-                className="w-full gap-2"
-                data-testid="button-quiz-back"
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="p-4 rounded-lg bg-gradient-to-r from-primary/20 to-cyan-500/20 border border-primary/40"
               >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Jarvis
-              </Button>
+                <p className="text-sm font-rajdhani mb-3 text-foreground font-semibold">
+                  "Do you really think you know Tony Stark better than I do?"
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Test your knowledge of Tony Stark in an endless survival mode. Questions get progressively harder. Get ONE wrong and you lose. Jarvis will judge your every answer.
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="grid grid-cols-1 gap-3 text-xs"
+              >
+                <div className="flex gap-2 items-center p-3 bg-red-500/10 rounded-lg border border-red-500/30">
+                  <Flame className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  <span>One wrong answer = Game Over</span>
+                </div>
+                <div className="flex gap-2 items-center p-3 bg-blue-500/10 rounded-lg border border-blue-500/30">
+                  <span>Questions 1-5: Easy</span>
+                </div>
+                <div className="flex gap-2 items-center p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
+                  <span>Questions 6-10: Medium</span>
+                </div>
+                <div className="flex gap-2 items-center p-3 bg-orange-500/10 rounded-lg border border-orange-500/30">
+                  <span>Questions 11+: Hard → Extreme</span>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="space-y-2"
+              >
+                <Button
+                  onClick={startQuiz}
+                  className="w-full bg-primary hover:bg-primary/90 text-lg py-6 font-orbitron"
+                  data-testid="button-start-tony-quiz"
+                >
+                  Enter Jarvis's Interrogation
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/')}
+                  className="w-full gap-2"
+                  data-testid="button-quiz-back-menu"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Jarvis
+                </Button>
+              </motion.div>
             </CardContent>
           </Card>
         </motion.div>
@@ -194,250 +190,259 @@ export default function QuizPage() {
   }
 
   // Loading
-  if (quizState === 'loading') {
+  if (state === 'loading') {
     return (
       <div className="w-full h-screen bg-gradient-to-b from-background to-background/80 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Initializing quiz...</p>
-        </div>
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+          className="text-center"
+        >
+          <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full" />
+          <p className="text-muted-foreground mt-4 font-rajdhani">Jarvis is preparing your interrogation...</p>
+        </motion.div>
       </div>
     );
   }
 
   // Playing
-  if (quizState === 'playing' && currentQ) {
+  if (state === 'playing' && currentQuestion) {
+    const difficulty = Math.ceil(questionNumber / 5);
+    const difficultyLabel = difficulty <= 1 ? 'Easy' : difficulty <= 2 ? 'Medium' : difficulty <= 3 ? 'Hard' : 'Extreme';
+    const difficultyColor =
+      difficulty <= 1 ? 'text-green-500' : difficulty <= 2 ? 'text-yellow-500' : difficulty <= 3 ? 'text-orange-500' : 'text-red-500';
+
     return (
-      <div className="w-full h-screen bg-gradient-to-b from-background to-background/80 flex flex-col p-4">
+      <div className="w-full h-screen bg-gradient-to-b from-background to-background/80 flex flex-col p-4 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between mb-6"
+        >
+          <div>
+            <h2 className="text-2xl font-orbitron font-bold">Question {questionNumber}</h2>
+            <p className={`text-sm font-rajdhani ${difficultyColor}`}>Difficulty: {difficultyLabel}</p>
+          </div>
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => resetQuiz()}
-            data-testid="button-quiz-exit"
+            onClick={resetQuiz}
+            data-testid="button-exit-tony-quiz"
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div className="text-center flex-1">
-            <p className="text-sm font-mono text-muted-foreground">
-              Question {currentQuestion + 1} of {questions.length}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm font-bold text-primary">{score} points</p>
-          </div>
-        </div>
+        </motion.div>
 
-        {/* Progress Bar */}
-        <div className="w-full h-1 bg-primary/20 rounded-full overflow-hidden mb-6">
-          <motion.div
-            className="h-full bg-gradient-to-r from-primary to-cyan-500"
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.5 }}
-          />
-        </div>
+        {/* Lives */}
+        <motion.div className="flex items-center gap-2 mb-6">
+          <Heart className="w-6 h-6 text-red-500 fill-red-500" />
+          <span className="font-orbitron">ONE STRIKE - NO MISTAKES</span>
+        </motion.div>
 
-        {/* Quiz Card */}
-        <div className="flex-1 flex items-center justify-center overflow-y-auto">
+        {/* Question Card */}
+        <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto pb-4">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            key={currentQuestion}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            key={currentQuestion.id}
             className="w-full max-w-2xl"
           >
-            <Card className="bg-gradient-to-br from-card to-card/50 border-primary/30">
+            {/* Jarvis Commentary */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mb-6 p-4 rounded-lg bg-gradient-to-r from-primary/20 to-transparent border-l-4 border-primary"
+            >
+              <p className="text-sm font-rajdhani italic text-foreground">"{jarvisMessage}"</p>
+            </motion.div>
+
+            {/* Question */}
+            <Card className="mb-6 bg-gradient-to-br from-primary/10 to-transparent border-primary/40">
               <CardHeader>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <Badge className={getDifficultyColor(currentQ.difficulty)}>
-                    {currentQ.difficulty}
-                  </Badge>
-                  <Badge className={getCategoryColor(currentQ.category)}>
-                    {currentQ.category.replace('-', ' ')}
-                  </Badge>
-                </div>
-                <CardTitle className="text-2xl">{currentQ.question}</CardTitle>
+                <CardTitle className="text-2xl leading-tight">{currentQuestion.question}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Options */}
-                <div className="space-y-2">
-                  {currentQ.options.map((option, index) => (
-                    <motion.button
-                      key={index}
-                      onClick={() => !showExplanation && handleAnswer(index)}
-                      disabled={showExplanation}
-                      className={`w-full p-4 text-left rounded-lg border-2 transition-all ${
-                        selectedAnswer === index
-                          ? index === currentQ.correct
-                            ? 'bg-green-500/20 border-green-500 text-green-600 dark:text-green-400'
-                            : 'bg-red-500/20 border-red-500 text-red-600 dark:text-red-400'
-                          : showExplanation && index === currentQ.correct
-                            ? 'bg-green-500/20 border-green-500 text-green-600 dark:text-green-400'
-                            : 'bg-card/50 border-primary/30 hover:border-primary/60 hover-elevate'
-                      }`}
-                      whileHover={{ scale: showExplanation ? 1 : 1.02 }}
-                      data-testid={`button-quiz-option-${index}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                            selectedAnswer === index
-                              ? index === currentQ.correct
-                                ? 'border-green-500 bg-green-500'
-                                : 'border-red-500 bg-red-500'
-                              : showExplanation && index === currentQ.correct
-                                ? 'border-green-500 bg-green-500'
-                                : 'border-primary/50'
-                          }`}
-                        >
-                          {selectedAnswer === index && (
-                            <span className="text-white text-xs">
-                              {index === currentQ.correct ? '✓' : '✗'}
-                            </span>
-                          )}
-                          {showExplanation && index === currentQ.correct && (
-                            <span className="text-white text-xs">✓</span>
-                          )}
-                        </div>
-                        <span>{option}</span>
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-
-                {/* Explanation */}
-                {showExplanation && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30"
-                  >
-                    <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-1">
-                      Explanation
-                    </p>
-                    <p className="text-sm text-muted-foreground">{currentQ.explanation}</p>
-                  </motion.div>
-                )}
-
-                {/* Next Button */}
-                {showExplanation && (
-                  <Button
-                    onClick={goToNextQuestion}
-                    className="w-full"
-                    data-testid="button-quiz-next"
-                  >
-                    {currentQuestion === questions.length - 1 ? 'Finish Quiz' : 'Next Question'}
-                  </Button>
-                )}
-              </CardContent>
             </Card>
+
+            {/* Options */}
+            <div className="space-y-2 mb-6">
+              {currentQuestion.options.map((option, index) => (
+                <motion.button
+                  key={index}
+                  onClick={() => !showExplanation && handleAnswer(index)}
+                  disabled={showExplanation}
+                  className={`w-full p-4 text-left rounded-lg border-2 transition-all text-sm ${
+                    selectedAnswer === index
+                      ? answerCorrect
+                        ? 'bg-green-500/20 border-green-500 text-green-600 dark:text-green-400'
+                        : 'bg-red-500/20 border-red-500 text-red-600 dark:text-red-400'
+                      : showExplanation && index === currentQuestion.correct
+                        ? 'bg-green-500/20 border-green-500 text-green-600 dark:text-green-400'
+                        : 'bg-card/50 border-primary/30 hover:border-primary/60 hover-elevate'
+                  }`}
+                  whileHover={{ scale: showExplanation ? 1 : 1.02 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  data-testid={`button-quiz-option-${index}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        selectedAnswer === index
+                          ? answerCorrect
+                            ? 'border-green-500 bg-green-500'
+                            : 'border-red-500 bg-red-500'
+                          : showExplanation && index === currentQuestion.correct
+                            ? 'border-green-500 bg-green-500'
+                            : 'border-primary/50'
+                      }`}
+                    >
+                      {selectedAnswer === index && (
+                        <span className="text-white text-xs font-bold">
+                          {answerCorrect ? '✓' : '✗'}
+                        </span>
+                      )}
+                      {showExplanation && index === currentQuestion.correct && (
+                        <span className="text-white text-xs font-bold">✓</span>
+                      )}
+                    </div>
+                    <span className="flex-1">{option}</span>
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+
+            {/* Explanation */}
+            <AnimatePresence>
+              {showExplanation && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-6 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30"
+                >
+                  <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2">
+                    {answerCorrect ? 'Correct!' : 'Wrong Answer'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">{currentQuestion.explanation}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Next Button */}
+            {showExplanation && answerCorrect && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="space-y-3"
+              >
+                <p className="text-xs text-muted-foreground text-center font-mono">
+                  Survived {questionNumber} questions
+                </p>
+                <Button
+                  onClick={nextQuestion}
+                  className="w-full bg-primary hover:bg-primary/90 text-lg py-6 font-orbitron"
+                  data-testid="button-next-tony-question"
+                >
+                  Next Question (Question {questionNumber + 1})
+                </Button>
+              </motion.div>
+            )}
           </motion.div>
         </div>
       </div>
     );
   }
 
-  // Finished
-  if (quizState === 'finished') {
-    const percentage = Math.round((score / questions.length) * 100);
-    let resultMessage = '';
-    let resultIcon = '';
-
-    if (percentage === 100) {
-      resultMessage = 'Perfect! You are a true Iron Man expert!';
-      resultIcon = '🏆';
-    } else if (percentage >= 80) {
-      resultMessage = 'Excellent! You know your MCU!';
-      resultIcon = '⭐';
-    } else if (percentage >= 60) {
-      resultMessage = 'Good! You have solid MCU knowledge!';
-      resultIcon = '👍';
-    } else if (percentage >= 40) {
-      resultMessage = 'Not bad! Keep watching the films!';
-      resultIcon = '📺';
-    } else {
-      resultMessage = 'Time to rewatch the Iron Man movies!';
-      resultIcon = '🎬';
-    }
-
+  // Lost
+  if (state === 'lost') {
     return (
-      <div className="w-full h-screen bg-gradient-to-b from-background to-background/80 flex items-center justify-center p-4">
+      <div className="w-full h-screen bg-gradient-to-b from-red-950/20 to-background flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="w-full max-w-2xl"
         >
-          <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/30">
+          <Card className="bg-gradient-to-br from-red-500/20 to-transparent border-red-500/50 border-2">
             <CardHeader className="text-center">
-              <div className="flex items-center justify-center mb-4">
-                <Award className="w-12 h-12 text-primary" />
-              </div>
-              <CardTitle className="text-4xl">Quiz Complete!</CardTitle>
+              <motion.div
+                animate={{ rotate: [0, -5, 5, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="text-6xl mb-4"
+              >
+                ✗
+              </motion.div>
+              <CardTitle className="text-4xl font-orbitron text-red-500">Game Over</CardTitle>
+              <p className="text-muted-foreground mt-2 font-rajdhani">
+                You made it {questionNumber} question{questionNumber > 1 ? 's' : ''}
+              </p>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Score Circle */}
-              <div className="flex justify-center">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="relative w-40 h-40 rounded-full bg-gradient-to-br from-primary/20 to-cyan-500/20 border-2 border-primary/50 flex items-center justify-center"
-                >
-                  <div className="text-center">
-                    <p className="text-5xl font-bold text-primary">{percentage}%</p>
-                    <p className="text-sm text-muted-foreground">
-                      {score}/{questions.length}
-                    </p>
-                  </div>
-                </motion.div>
-              </div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="p-4 rounded-lg bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/40 text-center"
+              >
+                <p className="text-lg font-rajdhani font-semibold text-foreground italic">
+                  "{jarvisMessage}"
+                </p>
+              </motion.div>
 
-              {/* Result Message */}
-              <div className="text-center">
-                <p className="text-2xl font-bold text-foreground mb-2">{resultMessage}</p>
-                <Badge className="bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border-cyan-500/30">
-                  Difficulty: {difficulty === 'random' ? 'Mixed' : difficulty}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="text-center"
+              >
+                <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30 text-sm px-3 py-1">
+                  Final Score: {questionNumber} Questions Survived
                 </Badge>
+              </motion.div>
+
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
+                  <p className="text-xs text-muted-foreground mb-1">Total Questions</p>
+                  <p className="text-2xl font-bold text-primary">{questionNumber}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
+                  <p className="text-xs text-muted-foreground mb-1">Difficulty</p>
+                  <p className="text-2xl font-bold text-orange-500">
+                    {Math.ceil(questionNumber / 5) <= 1
+                      ? 'Easy'
+                      : Math.ceil(questionNumber / 5) <= 2
+                        ? 'Medium'
+                        : Math.ceil(questionNumber / 5) <= 3
+                          ? 'Hard'
+                          : 'Extreme'}
+                  </p>
+                </div>
               </div>
 
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-3 pt-4 border-t">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {Math.ceil((score / questions.length) * 100)}%
-                  </p>
-                  <p className="text-xs text-muted-foreground">Accuracy</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-primary">{questions.length}</p>
-                  <p className="text-xs text-muted-foreground">Questions</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
-                    {score}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Correct</p>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-2">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="space-y-2"
+              >
                 <Button
-                  onClick={resetQuiz}
-                  className="flex-1"
-                  data-testid="button-quiz-retake"
+                  onClick={startQuiz}
+                  className="w-full bg-primary hover:bg-primary/90 text-lg py-6 font-orbitron"
+                  data-testid="button-retry-tony-quiz"
                 >
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  Take Another Quiz
+                  Try Again
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => navigate('/')}
-                  className="flex-1"
-                  data-testid="button-quiz-home"
+                  className="w-full gap-2"
+                  data-testid="button-return-home"
                 >
                   Back to Jarvis
                 </Button>
-              </div>
+              </motion.div>
             </CardContent>
           </Card>
         </motion.div>

@@ -6,6 +6,26 @@ This is a J.A.R.V.I.S.-inspired AI assistant web application modeled after Tony 
 
 **Core Purpose**: A surprise gift application that allows users to interact with their own "Jarvis" - complete with MCU knowledge, Iron Man references, and a cinematic holographic UI that captures the essence of Tony Stark's workshop interfaces.
 
+## Latest Features
+
+### MCU Tony Stark Survival Quiz (NEW!)
+- **One-Strike-You're-Out Format**: Single wrong answer = Game Over (no second chances!)
+- **Jarvis Personality System**: Sarcastic commentary, roasting when you lose, encouraging dialogue
+- **Unlimited Progression**: Infinite questions with progressive difficulty (Easy → Medium → Hard → Extreme)
+- **50+ Tony Stark Questions**: MCU-accurate trivia covering all aspects of Tony's story
+- **Jarvis Integration**: Contextual quotes, roasts, and encouragement between questions
+- **Cinematic UI**: Animated entrance, color-coded difficulty, heart meter showing one-strike mechanic
+
+### Professional Suit Blueprint Viewer (NEW!)
+- **15 Iron Man Suits with Generated Images**: Each suit displays realistic holographic imagery
+- **Animated Detail Panel**: Smooth staggered animations, color-coded sections, glowing headers
+- **Suit Categories**:
+  - Blue Section: Technical Specs (armor materials, power, capabilities)
+  - Red Section: Combat Profile (usages, weaknesses, upgrades)
+  - Purple Section: Notable Moments (timeline of suit usage)
+- **Interactive Grid**: Hover effects, click to view details, smooth transitions
+- **Search Functionality**: Find suits by name, film, or capability
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -23,7 +43,7 @@ Preferred communication style: Simple, everyday language.
 - Local React state for UI interactions and real-time features
 - Query client configured with custom fetch functions for API communication
 
-**Routing**: Wouter for lightweight client-side routing (single-page application with main Jarvis interface).
+**Routing**: Wouter for lightweight client-side routing (main Jarvis interface + Quiz page).
 
 **Styling Approach**:
 - Tailwind CSS with extensive custom configuration for the Iron Man-inspired theme
@@ -38,8 +58,9 @@ Preferred communication style: Simple, everyday language.
 - Waveform visualization orb for active/speaking states
 - Voice input support using Web Speech API
 - Real-time biometric scan displays (Stark Scan) with climate-aware values
-- Holographic Blueprint Viewer with 14 Iron Man suits from movies
+- Holographic Blueprint Viewer with 15 Iron Man suits with spinning 3D models
 - Interactive globe visualization for Tony Tracker using react-globe.gl
+- MCU Tony Stark Survival Quiz with Jarvis personality
 - Responsive design with mobile-first approach with toggle buttons for panels
 
 ### Backend Architecture
@@ -56,10 +77,12 @@ Preferred communication style: Simple, everyday language.
 - `/api/quotes/context?name=<contextName>` - Get quotes by thematic context
 - `/api/quotes/films` - List all films with available quotes
 - `/api/quotes/contexts` - List all available quote contexts
-- `/api/blueprints/all` - Get all Iron Man suits (14 total: Mark I through Mark LXXXV)
+- `/api/blueprints/all` - Get all Iron Man suits (15 total: Mark I through Mark LXXXV)
 - `/api/blueprints/mark/:number` - Get specific suit by Mark number
 - `/api/blueprints/search?q=<query>` - Search suits by name, film, or capability
 - `/api/blueprints/film?name=<filmName>` - Get all suits from a specific film
+- `/api/tony-quiz/next?question=<number>` - Get next Tony Stark quiz question with Jarvis commentary
+- `/api/tony-quiz/check` - POST endpoint to check answer and get Jarvis roast/encouragement
 
 **Development vs Production**:
 - Development: Vite dev server middleware integrated with Express for HMR and fast refresh
@@ -77,11 +100,10 @@ Preferred communication style: Simple, everyday language.
 - Comprehensive local quote database with 50+ iconic Jarvis and Tony Stark quotes
 - Stark Scan biometric data generation for contextual responses with climate-aware adjustments
 - Weather data integration for environmental context
-- Climate-aware biometric system: body temperature, vitals, and outfit adapt to geography (hot climates = elevated temps/reduced O2, cold climates = lower temps/thermal stress)
+- Climate-aware biometric system: body temperature, vitals, and outfit adapt to geography
 - Quote system allows natural integration into responses for authentic character dialogue
-- Holographic Blueprint system with 14 Iron Man suits (Mark I through Mark LXXXV)
-- Each suit includes: technical specs, armor materials, power sources, film debut, key usages, weaknesses, upgrades, and notable moments
-- Jarvis understands suit design philosophy and can answer "when does Tony wear this?" and explain technical choices based on Tony's character arc
+- Holographic Blueprint system with 15 Iron Man suits (Mark I through Mark LXXXV)
+- Tony Stark Survival Quiz system with 50+ questions and progressive difficulty
 
 ### Data Storage Solutions
 
@@ -155,3 +177,4 @@ Preferred communication style: Simple, everyday language.
 - `OPENWEATHER_API_KEY` - Optional (uses mock weather data as fallback)
 - `TAVILY_API_KEY` - Optional (disables web search for MCU references as fallback)
 - `NODE_ENV` - Set to "production" or "development"
+- `SESSION_SECRET` - Session encryption secret
