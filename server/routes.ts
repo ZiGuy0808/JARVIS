@@ -82,7 +82,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Call Cerebras AI with Tony's location and biometric context
-      const { response, isEasterEgg } = await callCerebras(enhancedMessage, conversationHistory, tonyLocation, scanData);
+      const { response, isEasterEgg } = await callCerebras(message, conversationHistory, tonyLocation, scanData, searchContext);
 
       // Save conversation to storage
       await storage.addConversation({ role: 'user', content: message });

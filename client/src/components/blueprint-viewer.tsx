@@ -53,7 +53,7 @@ export function BlueprintViewer() {
     queryKey: ['/api/blueprints/all'],
   }) as any;
 
-  const { data: selectedSuit, isLoading: isSuitLoading } = useQuery({
+  const { data: selectedSuit, isLoading: isSuitLoading, isFetching: isSuitFetching } = useQuery({
     queryKey: ['/api/blueprints/mark', selectedMark],
     enabled: selectedMark !== null,
   }) as any;
@@ -189,7 +189,7 @@ export function BlueprintViewer() {
           transition={{ duration: 0.5 }}
           className="w-96 overflow-y-auto border rounded-lg bg-card/30 backdrop-blur"
         >
-          {isSuitLoading ? (
+          {(isSuitLoading || isSuitFetching) && !suit ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

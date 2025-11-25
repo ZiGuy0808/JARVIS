@@ -24,7 +24,7 @@ interface StarkScanData {
   armorIntegrity: number;
 }
 
-function buildSystemPrompt(tonyLocation?: TonyLocation, scanData?: StarkScanData): string {
+function buildSystemPrompt(tonyLocation?: TonyLocation, scanData?: StarkScanData, searchContext?: string): string {
   let prompt = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), Tony Stark's highly sophisticated AI assistant from the Marvel Cinematic Universe.
 
 SEARCH CAPABILITIES:
@@ -105,7 +105,10 @@ IMPORTANT CONTEXT FOR RESPONSES:
 - Connect mood to activity intensity: high-stress missions = elevated heart rate, relaxation = lower vitals`;
   }
 
+  const searchInfo = searchContext ? `\n\nRECENT WEB SEARCH RESULTS:\n${searchContext}\n\nUse this information to provide accurate, detailed answers.` : '';
+
   prompt += `
+${searchInfo}
 
 IMPORTANT: When responding to greetings or simple questions, keep responses brief (1-2 sentences). Only provide longer explanations when specifically asked.`;
 
@@ -116,7 +119,8 @@ export async function callCerebras(
   userMessage: string,
   conversationHistory: CerebrasMessage[] = [],
   tonyLocation?: TonyLocation,
-  scanData?: StarkScanData
+  scanData?: StarkScanData,
+  searchContext?: string
 ): Promise<{ response: string; isEasterEgg: boolean }> {
   const apiKey = process.env.CEREBRAS_API_KEY;
 
@@ -126,14 +130,14 @@ export async function callCerebras(
 
   // Check for easter eggs
   const lowerMessage = userMessage.toLowerCase();
-  const isEasterEgg = 
+  const isEasterEgg =
     lowerMessage.includes('i am iron man') ||
     lowerMessage.includes('status report') ||
     lowerMessage.includes('run diagnostics') ||
     lowerMessage.includes('jarvis');
 
   const messages: CerebrasMessage[] = [
-    { role: 'system', content: buildSystemPrompt(tonyLocation, scanData) },
+    { role: 'system', content: buildSystemPrompt(tonyLocation, scanData, searchContext) },
     ...conversationHistory,
     { role: 'user', content: userMessage }
   ];

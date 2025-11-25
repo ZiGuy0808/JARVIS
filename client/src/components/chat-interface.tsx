@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { TypewriterText } from './typewriter-text';
 import type { ChatMessage } from '@shared/schema';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, User } from 'lucide-react';
+import { MessageSquare, User, Search } from 'lucide-react';
 
 interface ChatInterfaceProps {
   messages: ChatMessage[];
@@ -18,10 +18,10 @@ export function ChatInterface({ messages, onTypingComplete, isSearching }: ChatI
   useEffect(() => {
     console.log('[CHAT INTERFACE DEBUG] Messages updated:', messages.length, 'messages');
     messages.forEach((msg, idx) => {
-      console.log(`[CHAT INTERFACE DEBUG] Message ${idx}:`, { 
-        role: msg.role, 
-        isTyping: msg.isTyping, 
-        content: msg.content.substring(0, 50) 
+      console.log(`[CHAT INTERFACE DEBUG] Message ${idx}:`, {
+        role: msg.role,
+        isTyping: msg.isTyping,
+        content: msg.content.substring(0, 50)
       });
     });
     if (scrollRef.current) {
@@ -57,11 +57,11 @@ export function ChatInterface({ messages, onTypingComplete, isSearching }: ChatI
                   className="flex flex-col items-center justify-center min-h-[250px] text-center"
                 >
                   <motion.div
-                    animate={{ 
+                    animate={{
                       scale: [1, 1.05, 1],
                       rotate: [0, 5, -5, 0]
                     }}
-                    transition={{ 
+                    transition={{
                       duration: 4,
                       repeat: Infinity,
                       ease: "easeInOut"
@@ -93,9 +93,9 @@ export function ChatInterface({ messages, onTypingComplete, isSearching }: ChatI
                       animate={{ opacity: 1, y: 0 }}
                       className="flex gap-2 justify-start mb-4"
                     >
-                      <motion.div 
+                      <motion.div
                         className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500/30 to-cyan-500/10 border border-cyan-500/30 flex items-center justify-center"
-                        animate={{ 
+                        animate={{
                           boxShadow: ['0 0 0 0 rgba(0,255,255,0.4)', '0 0 0 8px rgba(0,255,255,0)', '0 0 0 0 rgba(0,255,255,0)']
                         }}
                         transition={{ duration: 1.5, repeat: Infinity }}
@@ -109,17 +109,17 @@ export function ChatInterface({ messages, onTypingComplete, isSearching }: ChatI
                           </p>
                         </div>
                         <div className="flex gap-1">
-                          <motion.div 
+                          <motion.div
                             className="w-2 h-2 rounded-full bg-cyan-400"
                             animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
                             transition={{ duration: 1, repeat: Infinity, delay: 0 }}
                           />
-                          <motion.div 
+                          <motion.div
                             className="w-2 h-2 rounded-full bg-cyan-400"
                             animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
                             transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
                           />
-                          <motion.div 
+                          <motion.div
                             className="w-2 h-2 rounded-full bg-cyan-400"
                             animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
                             transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
@@ -140,9 +140,9 @@ export function ChatInterface({ messages, onTypingComplete, isSearching }: ChatI
                     >
                       {/* Avatar for assistant */}
                       {message.role === 'assistant' && (
-                        <motion.div 
+                        <motion.div
                           className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/30 flex items-center justify-center"
-                          animate={{ 
+                          animate={{
                             boxShadow: ['0 0 0 0 rgba(0,255,255,0.4)', '0 0 0 8px rgba(0,255,255,0)', '0 0 0 0 rgba(0,255,255,0)']
                           }}
                           transition={{ duration: 2, repeat: Infinity }}
