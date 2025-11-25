@@ -20,17 +20,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Message is required' });
       }
 
-      // Check if we need to search the web for MCU references
+      // Improved search detection - check if query needs web lookup
       const needsSearch = 
         message.toLowerCase().includes('quote') ||
         message.toLowerCase().includes('movie') ||
         message.toLowerCase().includes('scene') ||
         message.toLowerCase().includes('what did') ||
-        message.toLowerCase().includes('when did');
+        message.toLowerCase().includes('when did') ||
+        message.toLowerCase().includes('when was') ||
+        message.toLowerCase().includes('who said') ||
+        message.toLowerCase().includes('which film') ||
+        message.toLowerCase().includes('what film') ||
+        message.toLowerCase().includes('deleted scene') ||
+        message.toLowerCase().includes('behind the scenes') ||
+        message.toLowerCase().includes('easter egg') ||
+        message.toLowerCase().includes('trivia') ||
+        message.toLowerCase().includes('fact about');
 
       let searchContext = '';
+      let didSearch = false;
       if (needsSearch) {
         searchContext = await searchWeb(message);
+        didSearch = searchContext.length > 0 && !searchContext.includes("unable to search");
       }
 
       // Get conversation history from storage (last 10 messages)
@@ -77,7 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.addConversation({ role: 'user', content: message });
       await storage.addConversation({ role: 'assistant', content: response });
 
-      res.json({ response, isEasterEgg });
+      res.json({ response, isEasterEgg, didSearch });
     } catch (error) {
       console.error('Chat error:', error);
       res.status(500).json({ 

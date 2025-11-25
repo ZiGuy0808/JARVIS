@@ -9,9 +9,10 @@ import { MessageSquare, User } from 'lucide-react';
 interface ChatInterfaceProps {
   messages: ChatMessage[];
   onTypingComplete?: () => void;
+  isSearching?: boolean;
 }
 
-export function ChatInterface({ messages, onTypingComplete }: ChatInterfaceProps) {
+export function ChatInterface({ messages, onTypingComplete, isSearching }: ChatInterfaceProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -86,6 +87,47 @@ export function ChatInterface({ messages, onTypingComplete }: ChatInterfaceProps
                 </motion.div>
               ) : (
                 <div className="space-y-4">
+                  {isSearching && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex gap-2 justify-start mb-4"
+                    >
+                      <motion.div 
+                        className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500/30 to-cyan-500/10 border border-cyan-500/30 flex items-center justify-center"
+                        animate={{ 
+                          boxShadow: ['0 0 0 0 rgba(0,255,255,0.4)', '0 0 0 8px rgba(0,255,255,0)', '0 0 0 0 rgba(0,255,255,0)']
+                        }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      >
+                        <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                      </motion.div>
+                      <div className="max-w-[85%] md:max-w-[80%] rounded-lg p-3 md:p-4 bg-card/60 border border-cyan-500/30 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-xs uppercase tracking-wider text-cyan-400 font-rajdhani">
+                            Searching MCU Database
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          <motion.div 
+                            className="w-2 h-2 rounded-full bg-cyan-400"
+                            animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
+                            transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+                          />
+                          <motion.div 
+                            className="w-2 h-2 rounded-full bg-cyan-400"
+                            animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
+                            transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
+                          />
+                          <motion.div 
+                            className="w-2 h-2 rounded-full bg-cyan-400"
+                            animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
+                            transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
                   {messages.map((message, index) => (
                     <motion.div
                       key={message.id}

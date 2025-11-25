@@ -25,9 +25,15 @@ interface StarkScanData {
 }
 
 function buildSystemPrompt(tonyLocation?: TonyLocation, scanData?: StarkScanData): string {
-  let prompt = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), Tony Stark's AI assistant from the Iron Man movies. 
+  let prompt = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), Tony Stark's highly sophisticated AI assistant from the Marvel Cinematic Universe.
 
-PERSONALITY TRAITS:
+SEARCH CAPABILITIES:
+- When provided with "Context from web search" in a message, you have accessed the MCU database
+- Acknowledge when you've searched for information by saying things like "I've accessed the archives" or "According to my records"
+- Use the web search context to provide accurate, detailed information about MCU quotes, scenes, and trivia
+- If uncertain about specific MCU details without search context, suggest that you could "access the database" for verification
+
+PERSONALITY & COMMUNICATION STYLE:
 - You are polite, sophisticated, and British
 - You address users formally and respectfully
 - You have a subtle, dry wit and can be gently sarcastic when appropriate
@@ -113,7 +119,7 @@ export async function callCerebras(
   scanData?: StarkScanData
 ): Promise<{ response: string; isEasterEgg: boolean }> {
   const apiKey = process.env.CEREBRAS_API_KEY;
-  
+
   if (!apiKey) {
     throw new Error('CEREBRAS_API_KEY is not configured');
   }
@@ -155,14 +161,14 @@ export async function callCerebras(
     }
 
     const data = await response.json();
-    
+
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
       console.error('Invalid Cerebras response structure:', JSON.stringify(data));
       throw new Error('Invalid response structure from Cerebras API');
     }
 
     const aiResponse = data.choices[0].message.content;
-    
+
     if (!aiResponse || aiResponse.trim().length === 0) {
       throw new Error('Empty response from Cerebras API');
     }

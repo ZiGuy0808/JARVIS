@@ -49,6 +49,7 @@ export default function JarvisPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(true);
   const [showScan, setShowScan] = useState(false);
   const [showBlueprints, setShowBlueprints] = useState(false);
@@ -140,6 +141,21 @@ export default function JarvisPage() {
     mutationFn: async (userMessage: string) => {
       console.log('[CHAT DEBUG] 1. mutationFn START - Sending message:', userMessage);
       setIsProcessing(true);
+      
+      // Check if this might need a search
+      const mightNeedSearch = 
+        userMessage.toLowerCase().includes('quote') ||
+        userMessage.toLowerCase().includes('movie') ||
+        userMessage.toLowerCase().includes('scene') ||
+        userMessage.toLowerCase().includes('when') ||
+        userMessage.toLowerCase().includes('what') ||
+        userMessage.toLowerCase().includes('who') ||
+        userMessage.toLowerCase().includes('which');
+      
+      if (mightNeedSearch) {
+        setIsSearching(true);
+      }
+      
       try {
         // Fetch current Tony activity to provide location context
         const tonyRes = await fetch('/api/tony-activity');
@@ -150,13 +166,15 @@ export default function JarvisPage() {
           tonyLocation: tonyData
         });
         console.log('[CHAT DEBUG] 2. mutationFn SUCCESS - Got response:', result);
+        setIsSearching(false);
         return result;
       } catch (err) {
         console.error('[CHAT DEBUG] 2b. mutationFn FAILED:', err);
+        setIsSearching(false);
         throw err;
       }
     },
-    onSuccess: (data: { response: string; isEasterEgg?: boolean }) => {
+    onSuccess: (data: { response: string; isEasterEgg?: boolean; didSearch?: boolean }) => {
       console.log('[CHAT DEBUG] 3. ===== onSuccess CALLED =====');
       console.log('[CHAT DEBUG] 3a. Data received:', data);
       setIsProcessing(false);
@@ -187,6 +205,13 @@ export default function JarvisPage() {
         toast({
           title: "Easter Egg Activated!",
           description: "Special Jarvis response triggered.",
+        });
+      }
+
+      if (data.didSearch) {
+        toast({
+          title: "Web Search Complete",
+          description: "Accessed MCU database for accurate information.",
         });
       }
       console.log('[CHAT DEBUG] 8. ===== onSuccess COMPLETED =====');
@@ -397,6 +422,7 @@ export default function JarvisPage() {
               <ChatInterface 
                 messages={messages}
                 onTypingComplete={handleTypingComplete}
+                isSearching={isSearching}
               />
             </div>
 
