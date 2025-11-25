@@ -10,6 +10,8 @@ import { searchQuotes, getQuotesByFilm, getQuotesByContext, getAllFilms, getAllC
 import { getSuitByMark, getSuitByName, searchSuits, getSuitsByFilm, getAllSuits } from "./lib/suits-database";
 import { getQuestionByDifficulty, getRandomRoast, getRandomEncouragement, getRandomQuote, getRandomUnusedQuestion } from "./lib/tony-stark-quiz";
 import { parseLocationFromMessage, type Location } from "./lib/locations";
+import * as path from "path";
+import * as fs from "fs";
 
 // Store custom Tony location that can be set via chat requests
 let currentTonyLocationOverride: Location | null = null;
@@ -412,6 +414,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Tony quiz check error:', error);
       res.status(500).json({ error: 'Failed to check answer' });
+    }
+  });
+
+  // Serve generated suit images from attached_assets
+  app.get("/api/assets/generated_images/:filename", (req, res) => {
+    try {
+      const filename = req.params.filename;
+      // Security: only allow alphanumeric, underscore, dot, and hyphen
+      if (!/^[a-zA-Z0-9_\-\.]+$/.test(filename)) {
+        return res.status(400).json({ error: 'Invalid filename' });
+      }
+
+      const imagePath = path.join(__dirname, '../attached_assets/generated_images', filename);
+      
+      // Check if file exists
+      if (!fs.existsSync(imagePath)) {
+        console.log(`Image not found: ${imagePath}`);
+        return res.status(404).json({ error: 'Image not found' });
+      }
+
+      // Set appropriate headers
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
+      
+      // Send the file
+      res.sendFile(imagePath);
+    } catch (error) {
+      console.error('Asset serving error:', error);
+      res.status(500).json({ error: 'Failed to serve asset' });
     }
   });
 

@@ -32,7 +32,7 @@ export function SuitImageViewer({ suitName, markNumber, color }: SuitImageViewer
   const imagePath = useMemo(() => {
     const imageName = SUIT_IMAGE_MAP[markNumber];
     if (imageName) {
-      return `/generated_images/${imageName}`;
+      return `/api/assets/generated_images/${imageName}`;
     }
     return null;
   }, [markNumber]);
