@@ -15,10 +15,22 @@ export function ChatInterface({ messages, onTypingComplete }: ChatInterfaceProps
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    console.log('[CHAT INTERFACE DEBUG] Messages updated:', messages.length, 'messages');
+    messages.forEach((msg, idx) => {
+      console.log(`[CHAT INTERFACE DEBUG] Message ${idx}:`, { 
+        role: msg.role, 
+        isTyping: msg.isTyping, 
+        content: msg.content.substring(0, 50) 
+      });
+    });
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    console.log('[CHAT INTERFACE DEBUG] onTypingComplete callback received:', typeof onTypingComplete);
+  }, [onTypingComplete]);
 
   return (
     <Card className="backdrop-blur-lg bg-card/40 border-primary/20 flex flex-col h-full min-h-[300px] md:min-h-[400px]" data-testid="chat-interface">
@@ -112,12 +124,21 @@ export function ChatInterface({ messages, onTypingComplete }: ChatInterfaceProps
                           </p>
                         </div>
                         {message.role === 'assistant' && message.isTyping ? (
-                          <TypewriterText
-                            text={message.content}
-                            speed={30}
-                            className="text-foreground text-sm md:text-base font-rajdhani leading-relaxed"
-                            onComplete={onTypingComplete}
-                          />
+                          <>
+                            <TypewriterText
+                              text={message.content}
+                              speed={30}
+                              className="text-foreground text-sm md:text-base font-rajdhani leading-relaxed"
+                              onComplete={() => {
+                                console.log('[CHAT INTERFACE DEBUG] Typewriter onComplete fired, calling parent callback');
+                                if (onTypingComplete) {
+                                  onTypingComplete();
+                                } else {
+                                  console.warn('[CHAT INTERFACE DEBUG] WARNING - onTypingComplete prop is undefined!');
+                                }
+                              }}
+                            />
+                          </>
                         ) : (
                           <p className="text-foreground text-sm md:text-base font-rajdhani leading-relaxed">{message.content}</p>
                         )}

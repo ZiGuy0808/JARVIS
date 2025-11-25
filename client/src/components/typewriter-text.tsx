@@ -14,7 +14,7 @@ export function TypewriterText({ text = '', speed = 30, onComplete, className = 
 
   // Reset when text changes
   useEffect(() => {
-    console.log('📝 Text changed, resetting typewriter:', text.substring(0, 50));
+    console.log('[TYPEWRITER DEBUG] Text changed, resetting typewriter:', text.substring(0, 50), 'Length:', text.length);
     setDisplayedText('');
     setCurrentIndex(0);
     setHasCompleted(false);
@@ -22,9 +22,14 @@ export function TypewriterText({ text = '', speed = 30, onComplete, className = 
 
   // Main typing effect
   useEffect(() => {
-    if (!text || hasCompleted) return;
+    if (!text || hasCompleted) {
+      if (hasCompleted) console.log('[TYPEWRITER DEBUG] Skipping - already completed');
+      if (!text) console.log('[TYPEWRITER DEBUG] Skipping - no text');
+      return;
+    }
     
     if (currentIndex < text.length) {
+      console.log('[TYPEWRITER DEBUG] Typing character', currentIndex, 'of', text.length, ':', text[currentIndex]);
       const timeout = setTimeout(() => {
         setDisplayedText(prev => prev + text[currentIndex]);
         setCurrentIndex(prev => prev + 1);
@@ -32,10 +37,13 @@ export function TypewriterText({ text = '', speed = 30, onComplete, className = 
 
       return () => clearTimeout(timeout);
     } else if (currentIndex === text.length && text.length > 0 && !hasCompleted) {
-      console.log('✍️ Typing complete, calling onComplete:', text.substring(0, 50));
+      console.log('[TYPEWRITER DEBUG] TYPING FINISHED! Calling onComplete. Text:', text.substring(0, 50));
       setHasCompleted(true);
       if (onComplete) {
+        console.log('[TYPEWRITER DEBUG] Calling onComplete callback');
         onComplete();
+      } else {
+        console.warn('[TYPEWRITER DEBUG] WARNING - onComplete callback is undefined!');
       }
     }
   }, [currentIndex, text, speed, onComplete, hasCompleted]);

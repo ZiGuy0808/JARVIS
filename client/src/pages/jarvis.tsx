@@ -94,10 +94,20 @@ export default function JarvisPage() {
 
   const chatMutation = useMutation({
     mutationFn: async (userMessage: string) => {
+      console.log('[CHAT DEBUG] 1. mutationFn START - Sending message:', userMessage);
       setIsProcessing(true);
-      return await apiRequest('POST', '/api/chat', { message: userMessage });
+      try {
+        const result = await apiRequest('POST', '/api/chat', { message: userMessage });
+        console.log('[CHAT DEBUG] 2. mutationFn SUCCESS - Got response:', result);
+        return result;
+      } catch (err) {
+        console.error('[CHAT DEBUG] 2b. mutationFn FAILED:', err);
+        throw err;
+      }
     },
     onSuccess: (data: { response: string; isEasterEgg?: boolean }) => {
+      console.log('[CHAT DEBUG] 3. ===== onSuccess CALLED =====');
+      console.log('[CHAT DEBUG] 3a. Data received:', data);
       setIsProcessing(false);
       
       const assistantMessage: ChatMessage = {
@@ -108,10 +118,19 @@ export default function JarvisPage() {
         isTyping: true,
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      console.log('[CHAT DEBUG] 4. Created assistant message:', assistantMessage);
+      setMessages(prev => {
+        const updated = [...prev, assistantMessage];
+        console.log('[CHAT DEBUG] 5. State update - messages array now:', updated.length, 'messages');
+        updated.forEach((m, i) => {
+          console.log(`[CHAT DEBUG] 5.${i} Message ${i}:`, { role: m.role, isTyping: m.isTyping, contentPreview: m.content.substring(0, 30) });
+        });
+        return updated;
+      });
 
       // Start speaking/waveform animation immediately
       setIsSpeaking(true);
+      console.log('[CHAT DEBUG] 6. Set isSpeaking to true');
 
       // Speak the response (but don't stop isSpeaking here - let the typing complete callback handle it)
       if (synthRef.current) {
@@ -121,6 +140,9 @@ export default function JarvisPage() {
         utterance.pitch = 1.0;
 
         synthRef.current.speak(utterance);
+        console.log('[CHAT DEBUG] 7. Started speaking');
+      } else {
+        console.log('[CHAT DEBUG] 7b. synthRef.current is null, no speech');
       }
 
       if (data.isEasterEgg) {
@@ -129,8 +151,11 @@ export default function JarvisPage() {
           description: "Special Jarvis response triggered.",
         });
       }
+      console.log('[CHAT DEBUG] 8. ===== onSuccess COMPLETED =====');
     },
     onError: (error: Error) => {
+      console.error('[CHAT DEBUG] ===== onError CALLED =====');
+      console.error('[CHAT DEBUG] ERROR:', error);
       setIsProcessing(false);
       setIsSpeaking(false);
       toast({
@@ -139,9 +164,13 @@ export default function JarvisPage() {
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      console.log('[CHAT DEBUG] 11. ===== onSettled CALLED (mutation complete) =====');
+    },
   });
 
   const handleUserMessage = (text: string) => {
+    console.log('[CHAT DEBUG] handleUserMessage called with:', text);
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -149,30 +178,35 @@ export default function JarvisPage() {
       timestamp: new Date(),
     };
 
+    console.log('[CHAT DEBUG] Adding user message, triggering mutation');
     setMessages(prev => [...prev, userMessage]);
     chatMutation.mutate(text);
   };
 
   const handleTypingComplete = useCallback(() => {
-    console.log('🎬 Typing complete callback fired');
+    console.log('[CHAT DEBUG] 8. handleTypingComplete called');
     setMessages(prev => {
       const updated = [...prev];
       let found = false;
       for (let i = updated.length - 1; i >= 0; i--) {
         if (updated[i].role === 'assistant' && updated[i].isTyping) {
-          console.log('✅ Marking message as done typing:', updated[i].content.substring(0, 50));
+          console.log('[CHAT DEBUG] 9. Marking message as done typing:', updated[i].content.substring(0, 50));
           updated[i] = { ...updated[i], isTyping: false };
           found = true;
           break;
         }
       }
       if (!found) {
-        console.warn('⚠️ No typing message found to mark as complete');
+        console.warn('[CHAT DEBUG] 9b. WARNING - No typing message found to mark as complete');
+        console.warn('[CHAT DEBUG] Messages:', prev.map(m => ({ role: m.role, isTyping: m.isTyping, content: m.content.substring(0, 30) })));
       }
       return updated;
     });
     
-    setTimeout(() => setIsSpeaking(false), 500);
+    setTimeout(() => {
+      console.log('[CHAT DEBUG] 10. Setting isSpeaking to false');
+      setIsSpeaking(false);
+    }, 500);
   }, []);
 
   const toggleRecording = () => {
