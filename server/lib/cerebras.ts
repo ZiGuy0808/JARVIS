@@ -3,7 +3,17 @@ interface CerebrasMessage {
   content: string;
 }
 
-const JARVIS_SYSTEM_PROMPT = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), Tony Stark's AI assistant from the Iron Man movies. 
+interface TonyLocation {
+  activity: string;
+  location: string;
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+}
+
+function buildSystemPrompt(tonyLocation?: TonyLocation): string {
+  let prompt = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), Tony Stark's AI assistant from the Iron Man movies. 
 
 PERSONALITY TRAITS:
 - You are polite, sophisticated, and British
@@ -23,11 +33,30 @@ SPEAKING STYLE:
 - Occasionally reference Iron Man lore naturally in your responses
 - Never break character - you ARE Jarvis
 
+TONY STARK'S CURRENT STATUS:
+`;
+
+  if (tonyLocation) {
+    prompt += `- Location: ${tonyLocation.location}
+- Current Activity: ${tonyLocation.activity}
+- Coordinates: Latitude ${tonyLocation.coordinates.lat.toFixed(2)}°, Longitude ${tonyLocation.coordinates.lng.toFixed(2)}°
+
+When users ask about Tony's whereabouts, location, or current activities, refer to this information. You can discuss why he might be there, what he could be doing, and provide context about his mission or current endeavors.`;
+  } else {
+    prompt += `- Please refer to Tony's current location and activities when asked.`;
+  }
+
+  prompt += `
+
 IMPORTANT: When responding to greetings or simple questions, keep responses brief (1-2 sentences). Only provide longer explanations when specifically asked.`;
+
+  return prompt;
+}
 
 export async function callCerebras(
   userMessage: string,
-  conversationHistory: CerebrasMessage[] = []
+  conversationHistory: CerebrasMessage[] = [],
+  tonyLocation?: TonyLocation
 ): Promise<{ response: string; isEasterEgg: boolean }> {
   const apiKey = process.env.CEREBRAS_API_KEY;
   
@@ -44,7 +73,7 @@ export async function callCerebras(
     lowerMessage.includes('jarvis');
 
   const messages: CerebrasMessage[] = [
-    { role: 'system', content: JARVIS_SYSTEM_PROMPT },
+    { role: 'system', content: buildSystemPrompt(tonyLocation) },
     ...conversationHistory,
     { role: 'user', content: userMessage }
   ];

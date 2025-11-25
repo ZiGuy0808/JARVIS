@@ -88,7 +88,14 @@ export default function JarvisPage() {
       console.log('[CHAT DEBUG] 1. mutationFn START - Sending message:', userMessage);
       setIsProcessing(true);
       try {
-        const result = await apiRequest('POST', '/api/chat', { message: userMessage });
+        // Fetch current Tony activity to provide location context
+        const tonyRes = await fetch('/api/tony-activity');
+        const tonyData = await tonyRes.json();
+        
+        const result = await apiRequest('POST', '/api/chat', { 
+          message: userMessage,
+          tonyLocation: tonyData
+        });
         console.log('[CHAT DEBUG] 2. mutationFn SUCCESS - Got response:', result);
         return result;
       } catch (err) {

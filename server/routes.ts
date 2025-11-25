@@ -10,7 +10,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Chat endpoint
   app.post("/api/chat", async (req, res) => {
     try {
-      const { message } = req.body;
+      const { message, tonyLocation } = req.body;
 
       if (!message || typeof message !== 'string') {
         return res.status(400).json({ error: 'Message is required' });
@@ -41,8 +41,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? `${message}\n\nContext from web search: ${searchContext}`
         : message;
 
-      // Call Cerebras AI
-      const { response, isEasterEgg } = await callCerebras(enhancedMessage, conversationHistory);
+      // Call Cerebras AI with Tony's location context
+      const { response, isEasterEgg } = await callCerebras(enhancedMessage, conversationHistory, tonyLocation);
 
       // Save conversation to storage
       await storage.addConversation({ role: 'user', content: message });
