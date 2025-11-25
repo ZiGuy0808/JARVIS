@@ -49,6 +49,12 @@ Preferred communication style: Simple, everyday language.
 - `/api/chat` - POST endpoint for conversational AI interactions
 - `/api/weather` - GET endpoint for weather data (defaults to Malibu, CA)
 - `/api/tony-activity` - GET endpoint for random Tony Stark activity/location
+- `/api/stark-scan` - GET endpoint for Tony's real-time biometric data
+- `/api/quotes/search?q=<query>` - Search iconic quotes by text, film, context, or character
+- `/api/quotes/film?name=<filmName>` - Get all quotes from a specific film
+- `/api/quotes/context?name=<contextName>` - Get quotes by thematic context
+- `/api/quotes/films` - List all films with available quotes
+- `/api/quotes/contexts` - List all available quote contexts
 
 **Development vs Production**:
 - Development: Vite dev server middleware integrated with Express for HMR and fast refresh
@@ -63,8 +69,11 @@ Preferred communication style: Simple, everyday language.
 
 **Context Enhancement**:
 - Web search integration via Tavily API for accurate MCU quotes and references
-- Stark Scan biometric data generation for contextual responses
+- Comprehensive local quote database with 50+ iconic Jarvis and Tony Stark quotes
+- Stark Scan biometric data generation for contextual responses with climate-aware adjustments
 - Weather data integration for environmental context
+- Climate-aware biometric system: body temperature, vitals, and outfit adapt to geography (hot climates = elevated temps/reduced O2, cold climates = lower temps/thermal stress)
+- Quote system allows natural integration into responses for authentic character dialogue
 
 ### Data Storage Solutions
 

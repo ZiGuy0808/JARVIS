@@ -1,5 +1,8 @@
 import type { TonyActivity } from '@shared/schema';
 
+// Cache for outfit consistency per activity/location
+const outfitCache: Map<string, string> = new Map();
+
 export interface StarkScan {
   timestamp: number;
   suit: string;
@@ -160,41 +163,53 @@ function getActivityMoodContext(activity: string): { mood: string; heartRateRang
 
 export function generateStarkScan(tonyActivity: TonyActivity): StarkScan {
   const now = Date.now();
-  const seed = now + Math.random(); // Ensure uniqueness
+  
+  // Create cache key for outfit consistency
+  const cacheKey = `${tonyActivity.activity}|${tonyActivity.location}`;
   
   // Get activity-based mood
   const { mood: activityMood, heartRateRange } = getActivityMoodContext(tonyActivity.activity);
   
-  // Generate heart rate based on activity
+  // Generate heart rate based on activity - FRESH each time for live updates
   const baseHeartRate = Math.floor(Math.random() * (heartRateRange[1] - heartRateRange[0]) + heartRateRange[0]);
   const heartRate = baseHeartRate + Math.floor(Math.random() * 20 - 10); // ±10 variation
   
-  // Select outfit based on activity and location
-  let outfit = OUTFITS[Math.floor(seed * OUTFITS.length) % OUTFITS.length];
-  const locationLower = tonyActivity.location.toLowerCase();
-  
-  if (tonyActivity.activity.toLowerCase().includes('test') || 
-      tonyActivity.activity.toLowerCase().includes('mission') ||
-      tonyActivity.activity.toLowerCase().includes('combat')) {
-    outfit = 'Black tactical gear';
-  } else if (tonyActivity.activity.toLowerCase().includes('board') || 
-             tonyActivity.activity.toLowerCase().includes('gala')) {
-    outfit = 'Formal evening wear';
-  } else if (tonyActivity.activity.toLowerCase().includes('lab') || 
-             tonyActivity.activity.toLowerCase().includes('tinkering')) {
-    outfit = 'Workshop overalls';
-  } else if (locationLower.includes('arctic') || locationLower.includes('antarctica') || 
-             locationLower.includes('siberia') || locationLower.includes('greenland')) {
-    outfit = 'Heavy arctic insulation suit';
-  } else if (locationLower.includes('desert') || locationLower.includes('sahara') || 
-             locationLower.includes('dubai') || locationLower.includes('africa')) {
-    outfit = 'Lightweight cooling vest and shorts';
-  } else if (locationLower.includes('beach') || locationLower.includes('tropical') || 
-             locationLower.includes('caribbean')) {
-    outfit = 'Designer swim shorts and casual shirt';
+  // Get or cache outfit - CONSISTENT per activity/location
+  let outfit: string;
+  if (outfitCache.has(cacheKey)) {
+    outfit = outfitCache.get(cacheKey)!;
+  } else {
+    const seed = Math.random(); // Initial seed for outfit selection
+    outfit = OUTFITS[Math.floor(seed * OUTFITS.length) % OUTFITS.length];
+    const locationLower = tonyActivity.location.toLowerCase();
+    
+    if (tonyActivity.activity.toLowerCase().includes('test') || 
+        tonyActivity.activity.toLowerCase().includes('mission') ||
+        tonyActivity.activity.toLowerCase().includes('combat')) {
+      outfit = 'Black tactical gear';
+    } else if (tonyActivity.activity.toLowerCase().includes('board') || 
+               tonyActivity.activity.toLowerCase().includes('gala')) {
+      outfit = 'Formal evening wear';
+    } else if (tonyActivity.activity.toLowerCase().includes('lab') || 
+               tonyActivity.activity.toLowerCase().includes('tinkering')) {
+      outfit = 'Workshop overalls';
+    } else if (locationLower.includes('arctic') || locationLower.includes('antarctica') || 
+               locationLower.includes('siberia') || locationLower.includes('greenland')) {
+      outfit = 'Heavy arctic insulation suit';
+    } else if (locationLower.includes('desert') || locationLower.includes('sahara') || 
+               locationLower.includes('dubai') || locationLower.includes('africa')) {
+      outfit = 'Lightweight cooling vest and shorts';
+    } else if (locationLower.includes('beach') || locationLower.includes('tropical') || 
+               locationLower.includes('caribbean')) {
+      outfit = 'Designer swim shorts and casual shirt';
+    }
+    
+    // Cache the outfit
+    outfitCache.set(cacheKey, outfit);
   }
   
-  // Select suit
+  // Select suit - FRESH each time for variety
+  const seed = Math.random();
   const suit = SUITS[Math.floor(seed * SUITS.length) % SUITS.length];
   
   // Get climate-adjusted base temperature

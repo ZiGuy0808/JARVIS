@@ -6,6 +6,7 @@ import { getWeather } from "./lib/weather";
 import { getTonyActivity } from "./lib/tony-activity";
 import { generateStarkScan } from "./lib/stark-scan";
 import { searchWeb } from "./lib/search";
+import { searchQuotes, getQuotesByFilm, getQuotesByContext, getAllFilms, getAllContexts } from "./lib/quotes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Chat endpoint
@@ -59,7 +60,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             mood: scan.mood,
             bodyTemperature: scan.bodyTemperature,
             energyLevel: scan.energyLevel,
-            armorIntegrity: scan.armorIntegrity
+            armorIntegrity: scan.armorIntegrity,
+            vitals: scan.vitals,
+            systems: scan.systems
           };
         } catch (e) {
           // If scan generation fails, continue without it
@@ -127,6 +130,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Stark scan error:', error);
       res.status(500).json({ error: 'Failed to generate Stark scan' });
+    }
+  });
+
+  // Quotes endpoints
+  app.get("/api/quotes/search", (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query) {
+        return res.status(400).json({ error: 'Search query required' });
+      }
+      const results = searchQuotes(query);
+      res.json({ results, count: results.length });
+    } catch (error) {
+      console.error('Quote search error:', error);
+      res.status(500).json({ error: 'Failed to search quotes' });
+    }
+  });
+
+  app.get("/api/quotes/film", (req, res) => {
+    try {
+      const filmName = req.query.name as string;
+      if (!filmName) {
+        return res.status(400).json({ error: 'Film name required' });
+      }
+      const results = getQuotesByFilm(filmName);
+      res.json({ results, count: results.length });
+    } catch (error) {
+      console.error('Quote film search error:', error);
+      res.status(500).json({ error: 'Failed to fetch film quotes' });
+    }
+  });
+
+  app.get("/api/quotes/context", (req, res) => {
+    try {
+      const contextName = req.query.name as string;
+      if (!contextName) {
+        return res.status(400).json({ error: 'Context name required' });
+      }
+      const results = getQuotesByContext(contextName);
+      res.json({ results, count: results.length });
+    } catch (error) {
+      console.error('Quote context search error:', error);
+      res.status(500).json({ error: 'Failed to fetch context quotes' });
+    }
+  });
+
+  app.get("/api/quotes/films", (_req, res) => {
+    try {
+      const films = getAllFilms();
+      res.json({ films });
+    } catch (error) {
+      console.error('Films list error:', error);
+      res.status(500).json({ error: 'Failed to fetch films list' });
+    }
+  });
+
+  app.get("/api/quotes/contexts", (_req, res) => {
+    try {
+      const contexts = getAllContexts();
+      res.json({ contexts });
+    } catch (error) {
+      console.error('Contexts list error:', error);
+      res.status(500).json({ error: 'Failed to fetch contexts list' });
     }
   });
 
