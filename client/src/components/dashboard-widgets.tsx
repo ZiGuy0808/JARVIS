@@ -55,7 +55,7 @@ export function DashboardWidgets() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <Card className="backdrop-blur-lg bg-card/40 border-primary/20 p-4 hover-elevate" data-testid="widget-weather">
+        <Card className="backdrop-blur-lg bg-card/40 border-primary/20 p-4" data-testid="widget-weather">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
               <Cloud className="w-6 h-6 text-primary" />
@@ -83,7 +83,7 @@ export function DashboardWidgets() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <Card className="backdrop-blur-lg bg-card/40 border-primary/20 p-4 hover-elevate" data-testid="widget-battery">
+        <Card className="backdrop-blur-lg bg-card/40 border-primary/20 p-4" data-testid="widget-battery">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
               <Battery className="w-6 h-6 text-primary" />
@@ -107,7 +107,7 @@ export function DashboardWidgets() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <Card className="backdrop-blur-lg bg-card/40 border-primary/20 p-4 hover-elevate" data-testid="widget-time">
+        <Card className="backdrop-blur-lg bg-card/40 border-primary/20 p-4" data-testid="widget-time">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
               <Clock className="w-6 h-6 text-primary" />
