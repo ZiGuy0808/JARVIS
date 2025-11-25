@@ -77,7 +77,7 @@ When users ask about why Tony is at this location, explain naturally using the a
     prompt += `- Please refer to Tony's current location and activities when asked.`;
   }
 
-  if (scanData && scanData.vitals && scanData.systems) {
+  if (scanData) {
     prompt += `
 
 TONY'S BIOMETRIC STATUS:
@@ -87,18 +87,16 @@ TONY'S BIOMETRIC STATUS:
 - Energy Level: ${scanData.energyLevel}%
 - Body Temperature: ${scanData.bodyTemperature}°C
 - Armor Integrity: ${scanData.armorIntegrity}%
-- Vital Signs: Adrenaline ${scanData.vitals.adrenaline}%, Cortisol ${scanData.vitals.cortisol}%, Oxygenation ${scanData.vitals.oxygenation}%
-- System Status: Neural ${scanData.systems.neural}%, Circulatory ${scanData.systems.circulatory}%, Respiratory ${scanData.systems.respiratory}%, Muscular ${scanData.systems.muscular}%
 
 IMPORTANT CONTEXT FOR RESPONSES:
 - Tony's biometric data is influenced by his current location and climate. For example:
-  - In hot climates (Africa, Deserts, Tropical regions): Higher body temperature, increased stress on respiratory/circulatory systems, lighter clothing
+  - In hot climates (Africa, Deserts, Tropical regions): Higher body temperature, increased stress on systems, lighter clothing
   - In cold climates (Arctic, Siberia, Mountains): Lower body temperature, emphasis on insulation and thermal regulation
-  - Extreme climates naturally increase cortisol and reduce oxygenation efficiency
+  - Extreme climates naturally increase stress and reduce efficiency
 - Match outfit descriptions to the climate: desert locations = cooling gear, arctic = insulation, tropical = minimal clothing
-- Explain biometric data in context of location: "Your body temperature is elevated because you're in the Sahara" or "Your respiratory system is working harder due to the thin mountain air"
+- Explain biometric data in context of location: "Your body temperature is elevated because you're in the Sahara" or "Your systems are working harder due to the thin mountain air"
 - Reference the data naturally in conversation when discussing Tony's status, well-being, or capabilities
-- Connect mood to activity intensity: high-stress missions = elevated heart rate and adrenaline, relaxation = lower vitals`;
+- Connect mood to activity intensity: high-stress missions = elevated heart rate, relaxation = lower vitals`;
   }
 
   prompt += `
