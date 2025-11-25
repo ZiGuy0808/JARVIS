@@ -412,8 +412,19 @@ export default function JarvisPage() {
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="flex-1 flex flex-col rounded-lg border border-cyan-500/30 bg-background/50 backdrop-blur-sm min-h-0 md:h-[600px]"
+                className="flex-1 flex flex-col rounded-lg border border-cyan-500/30 bg-background/50 backdrop-blur-sm min-h-0"
               >
+                {/* Desktop Header with Close */}
+                <div className="hidden lg:flex items-center justify-between gap-2 p-3 border-b border-cyan-500/20 flex-shrink-0">
+                  <h3 className="font-orbitron text-lg text-cyan-400">Holographic Blueprints</h3>
+                  <button
+                    onClick={() => setShowBlueprints(false)}
+                    className="px-3 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 rounded text-cyan-400 text-xs font-orbitron transition-colors"
+                    data-testid="button-close-blueprints-desktop"
+                  >
+                    Close
+                  </button>
+                </div>
                 {/* Mobile Header with Close */}
                 <div className="lg:hidden flex items-center justify-between gap-2 p-3 border-b border-cyan-500/20 flex-shrink-0">
                   <h3 className="font-orbitron text-sm text-cyan-400">Holographic Blueprints</h3>
@@ -426,7 +437,7 @@ export default function JarvisPage() {
                   </button>
                 </div>
                 {/* Content */}
-                <div className="flex-1 overflow-hidden lg:overflow-visible">
+                <div className="flex-1 overflow-hidden">
                   <BlueprintViewer />
                 </div>
               </motion.div>
@@ -459,7 +470,7 @@ export default function JarvisPage() {
             )}
 
             {/* Chat - Takes all remaining space */}
-            <div className={`flex-1 lg:min-h-0 overflow-y-auto lg:overflow-hidden ${(showScan || showBlueprints) ? 'hidden md:block' : ''}`}>
+            <div className={`flex-1 lg:min-h-0 overflow-y-auto lg:overflow-hidden ${(showScan || showBlueprints) ? 'hidden lg:block' : ''}`}>
               <ChatInterface 
                 messages={messages}
                 onTypingComplete={handleTypingComplete}
