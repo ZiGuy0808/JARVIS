@@ -7,11 +7,13 @@ interface TypewriterTextProps {
   className?: string;
 }
 
-export function TypewriterText({ text, speed = 30, onComplete, className = '' }: TypewriterTextProps) {
+export function TypewriterText({ text = '', speed = 30, onComplete, className = '' }: TypewriterTextProps) {
   const [displayedText, setDisplayedText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
+    if (!text) return;
+    
     if (currentIndex < text.length) {
       const timeout = setTimeout(() => {
         setDisplayedText(prev => prev + text[currentIndex]);
