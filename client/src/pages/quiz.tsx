@@ -145,7 +145,7 @@ export default function QuizPage() {
   // ============= MENU STATE =============
   if (state === 'menu') {
     return (
-      <div className="w-full h-screen bg-gradient-to-b from-background to-background/80 flex items-center justify-center p-4">
+      <div className="w-full min-h-screen bg-gradient-to-b from-background to-background/80 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -260,7 +260,7 @@ export default function QuizPage() {
     };
 
     return (
-      <div className="w-full h-screen bg-gradient-to-b from-background to-background/80 flex items-center justify-center p-4">
+      <div className="w-full min-h-screen bg-gradient-to-b from-background to-background/80 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -413,7 +413,7 @@ export default function QuizPage() {
   // ============= LOST STATE =============
   if (state === 'lost') {
     return (
-      <div className="w-full h-screen bg-gradient-to-b from-background to-background/80 flex items-center justify-center p-4">
+      <div className="w-full min-h-screen bg-gradient-to-b from-background to-background/80 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -490,7 +490,7 @@ export default function QuizPage() {
   // ============= WON STATE (Regular Mode Only) =============
   if (state === 'won') {
     return (
-      <div className="w-full h-screen bg-gradient-to-b from-background to-background/80 flex items-center justify-center p-4">
+      <div className="w-full min-h-screen bg-gradient-to-b from-background to-background/80 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -558,7 +558,7 @@ export default function QuizPage() {
 
   // ============= LOADING STATE =============
   return (
-    <div className="w-full h-screen bg-gradient-to-b from-background to-background/80 flex items-center justify-center p-4">
+    <div className="w-full min-h-screen bg-gradient-to-b from-background to-background/80 flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}

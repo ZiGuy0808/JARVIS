@@ -141,7 +141,7 @@ export function TonyTracker() {
                   const coreColor = arcReactorColor;
                   
                   el.innerHTML = `
-                    <svg width="50" height="50" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 0 ${glowIntensity}px ${coreColor}); animation: arc-reactor-pulse 2s ease-in-out infinite;">
+                    <svg width="28" height="28" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 0 ${glowIntensity}px ${coreColor}); animation: arc-reactor-pulse 2s ease-in-out infinite;">
                       <!-- Outer glow -->
                       <circle cx="18" cy="18" r="16" fill="none" stroke="${outerGlowColor}" stroke-width="2" opacity="${Math.max(0.2, battery / 150)}"/>
                       <!-- Outer ring -->

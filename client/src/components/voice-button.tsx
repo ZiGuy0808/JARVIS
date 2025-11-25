@@ -45,7 +45,7 @@ export function VoiceButton({ isRecording, onToggle, disabled }: VoiceButtonProp
         size="icon"
         onClick={onToggle}
         disabled={disabled}
-        className={`relative z-10 w-16 h-16 rounded-full ${
+        className={`relative z-10 w-14 h-14 md:w-16 md:h-16 rounded-full ${
           isRecording
             ? 'bg-primary hover:bg-primary/90 animate-pulse-glow'
             : 'bg-primary/20 hover:bg-primary/30 border border-primary/50'
@@ -53,9 +53,9 @@ export function VoiceButton({ isRecording, onToggle, disabled }: VoiceButtonProp
         data-testid={isRecording ? "button-stop-recording" : "button-start-recording"}
       >
         {isRecording ? (
-          <MicOff className="w-7 h-7 text-primary-foreground" />
+          <MicOff className="w-6 h-6 md:w-7 md:h-7 text-primary-foreground" />
         ) : (
-          <Mic className="w-7 h-7 text-primary" />
+          <Mic className="w-6 h-6 md:w-7 md:h-7 text-primary" />
         )}
       </Button>
     </div>

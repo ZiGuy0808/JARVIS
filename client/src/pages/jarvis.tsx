@@ -305,15 +305,14 @@ export default function JarvisPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Animated particles background */}
       <ParticlesBackground />
       
       {/* Background effects */}
-      <div className="fixed inset-0 bg-gradient-to-br from-background via-background to-primary/5" style={{ zIndex: 0 }} />
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" style={{ zIndex: 0 }} />
+      <div className="fixed inset-0 bg-gradient-to-br from-background via-background to-primary/5 pointer-events-none" style={{ zIndex: 0 }} />
 
-      <div className="relative z-10 w-full h-screen flex flex-col">
+      <div className="relative z-10 w-full lg:h-screen lg:flex lg:flex-col flex flex-col">
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
@@ -339,9 +338,9 @@ export default function JarvisPage() {
         </motion.header>
 
         {/* Main content area - flexible layout */}
-        <div className="flex-1 overflow-hidden flex flex-col lg:flex-row gap-2 md:gap-4 p-2 md:p-4 min-h-0">
+        <div className="flex-1 overflow-y-auto lg:overflow-hidden flex flex-col lg:flex-row gap-2 md:gap-4 p-2 md:p-4 lg:min-h-0">
           {/* Left sidebar - Info panels (desktop) / top (mobile) */}
-          <div className="lg:w-96 lg:flex lg:flex-col gap-2 md:gap-4 hidden lg:flex flex-shrink-0 overflow-y-auto">
+          <div className="lg:w-96 lg:flex lg:flex-col gap-2 md:gap-4 hidden lg:flex lg:flex-shrink-0 lg:overflow-y-auto">
             <DashboardWidgets />
             <TonyTracker />
             {/* Stark Scan Toggle on Desktop */}
@@ -388,7 +387,7 @@ export default function JarvisPage() {
           {/* Center/Main - Chat PROMINENT */}
           <div className="flex-1 flex flex-col min-h-0 gap-2">
             {/* Top info on mobile */}
-            <div className="lg:hidden flex flex-col gap-2 flex-shrink-0">
+            <div className="lg:hidden flex flex-col gap-2">
               <DashboardWidgets />
               <TonyTracker />
             </div>
@@ -418,7 +417,7 @@ export default function JarvisPage() {
             )}
 
             {/* Chat - Takes all remaining space */}
-            <div className={`flex-1 min-h-0 overflow-hidden ${(showScan || showBlueprints) ? 'hidden md:block' : ''}`}>
+            <div className={`flex-1 lg:min-h-0 overflow-y-auto lg:overflow-hidden ${(showScan || showBlueprints) ? 'hidden md:block' : ''}`}>
               <ChatInterface 
                 messages={messages}
                 onTypingComplete={handleTypingComplete}
@@ -427,14 +426,14 @@ export default function JarvisPage() {
             </div>
 
             {/* Input Controls */}
-            <div className="flex-shrink-0 space-y-2 pt-2 pb-safe">
+            <div className="flex-shrink-0 space-y-1.5 md:space-y-2 pt-1 md:pt-2 px-0.5 md:px-0 pb-safe">
               {/* Toggles on Mobile - Optimized for iPhone */}
-              <div className={`flex gap-2 justify-center lg:hidden ${device.isIPhone ? 'px-2' : ''}`}>
+              <div className={`flex gap-1.5 md:gap-2 justify-center lg:hidden flex-wrap ${device.isIPhone ? 'px-1 md:px-2' : ''}`}>
                 {scanData && (
                   <motion.button
                     onClick={() => setShowScan(!showScan)}
-                    className={`flex-1 px-3 py-3 bg-primary/20 border border-primary/40 hover:bg-primary/30 rounded-lg text-xs font-orbitron text-primary transition-colors active:scale-95 ${
-                      device.isIPhone ? 'min-h-12 touch-target' : ''
+                    className={`flex-1 px-2 md:px-3 py-2 md:py-3 bg-primary/20 border border-primary/40 hover:bg-primary/30 rounded-lg text-[0.65rem] md:text-xs font-orbitron text-primary transition-colors active:scale-95 ${
+                      device.isIPhone ? 'min-h-11 md:min-h-12 touch-target' : 'min-h-10 md:min-h-11'
                     }`}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -445,8 +444,8 @@ export default function JarvisPage() {
                 )}
                 <motion.button
                   onClick={() => setShowBlueprints(!showBlueprints)}
-                  className={`flex-1 px-3 py-3 bg-cyan-500/20 border border-cyan-500/40 hover:bg-cyan-500/30 rounded-lg text-xs font-orbitron text-cyan-400 transition-colors active:scale-95 ${
-                    device.isIPhone ? 'min-h-12 touch-target' : ''
+                  className={`flex-1 px-2 md:px-3 py-2 md:py-3 bg-cyan-500/20 border border-cyan-500/40 hover:bg-cyan-500/30 rounded-lg text-[0.65rem] md:text-xs font-orbitron text-cyan-400 transition-colors active:scale-95 ${
+                    device.isIPhone ? 'min-h-11 md:min-h-12 touch-target' : 'min-h-10 md:min-h-11'
                   }`}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -456,8 +455,8 @@ export default function JarvisPage() {
                 </motion.button>
                 <motion.button
                   onClick={() => navigate('/quiz')}
-                  className={`flex-1 px-3 py-3 bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30 rounded-lg text-xs font-orbitron text-purple-400 transition-colors active:scale-95 ${
-                    device.isIPhone ? 'min-h-12 touch-target' : ''
+                  className={`flex-1 px-2 md:px-3 py-2 md:py-3 bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30 rounded-lg text-[0.65rem] md:text-xs font-orbitron text-purple-400 transition-colors active:scale-95 ${
+                    device.isIPhone ? 'min-h-11 md:min-h-12 touch-target' : 'min-h-10 md:min-h-11'
                   }`}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -473,7 +472,7 @@ export default function JarvisPage() {
                   disabled={chatMutation.isPending || !voiceSupported}
                 />
               </div>
-              <div className="px-0">
+              <div className="px-1 md:px-0">
                 <TextInput
                   onSubmit={handleUserMessage}
                   disabled={chatMutation.isPending}
@@ -487,9 +486,9 @@ export default function JarvisPage() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="lg:hidden fixed bottom-40 right-4 pointer-events-none z-20"
+          className="lg:hidden fixed bottom-36 right-2 md:right-4 pointer-events-none z-20"
         >
-          <div className="scale-[0.35]">
+          <div className="scale-[0.25] md:scale-[0.3]">
             <WaveformOrb isActive={isRecording || isProcessing} isSpeaking={isSpeaking} />
           </div>
         </motion.div>
