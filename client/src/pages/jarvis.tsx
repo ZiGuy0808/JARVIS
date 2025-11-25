@@ -14,6 +14,8 @@ import { useToast } from '@/hooks/use-toast';
 import type { ChatMessage } from '@shared/schema';
 import { motion } from 'framer-motion';
 import { apiRequest } from '@/lib/queryClient';
+import { useDeviceDetection, useBatteryStatus } from '@/hooks/use-device-detection';
+import { Zap } from 'lucide-react';
 
 interface StarkScanData {
   timestamp: number;
@@ -52,6 +54,8 @@ export default function JarvisPage() {
   const recognitionRef = useRef<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const device = useDeviceDetection();
+  const battery = useBatteryStatus();
 
   useEffect(() => {
     // Fetch initial Stark Scan data
@@ -289,14 +293,21 @@ export default function JarvisPage() {
           animate={{ opacity: 1, y: 0 }}
           className="px-2 md:px-4 py-2 md:py-3 relative flex-shrink-0 border-b border-primary/10"
         >
-          <div className="absolute right-4 top-2">
+          <div className="absolute right-4 top-2 flex items-center gap-2">
+            {battery && device.isIPhone && (
+              <div className="flex items-center gap-1 px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
+                <Zap className="w-3 h-3 text-primary" />
+                <span className="text-xs font-mono">{battery.level}%</span>
+                {battery.charging && <span className="text-xs text-green-500">•</span>}
+              </div>
+            )}
             <ThemeToggle />
           </div>
           <h1 className="text-2xl md:text-4xl lg:text-5xl font-orbitron font-bold text-center bg-gradient-to-r from-primary via-primary to-primary/50 bg-clip-text text-transparent">
             J.A.R.V.I.S.
           </h1>
           <p className="text-center text-xs md:text-sm text-muted-foreground font-rajdhani tracking-wider">
-            Just A Rather Very Intelligent System
+            {device.isIPhone ? 'iOS System Active' : 'Just A Rather Very Intelligent System'}
           </p>
         </motion.header>
 
@@ -379,12 +390,14 @@ export default function JarvisPage() {
 
             {/* Input Controls */}
             <div className="flex-shrink-0 space-y-2 pt-2 pb-safe">
-              {/* Toggles on Mobile */}
-              <div className="flex gap-2 justify-center lg:hidden">
+              {/* Toggles on Mobile - Optimized for iPhone */}
+              <div className={`flex gap-2 justify-center lg:hidden ${device.isIPhone ? 'px-2' : ''}`}>
                 {scanData && (
                   <motion.button
                     onClick={() => setShowScan(!showScan)}
-                    className="flex-1 px-3 py-2 bg-primary/20 border border-primary/40 hover:bg-primary/30 rounded-lg text-xs font-orbitron text-primary transition-colors"
+                    className={`flex-1 px-3 py-3 bg-primary/20 border border-primary/40 hover:bg-primary/30 rounded-lg text-xs font-orbitron text-primary transition-colors active:scale-95 ${
+                      device.isIPhone ? 'min-h-12 touch-target' : ''
+                    }`}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     data-testid="button-toggle-stark-scan-mobile"
@@ -394,7 +407,9 @@ export default function JarvisPage() {
                 )}
                 <motion.button
                   onClick={() => setShowBlueprints(!showBlueprints)}
-                  className="flex-1 px-3 py-2 bg-cyan-500/20 border border-cyan-500/40 hover:bg-cyan-500/30 rounded-lg text-xs font-orbitron text-cyan-400 transition-colors"
+                  className={`flex-1 px-3 py-3 bg-cyan-500/20 border border-cyan-500/40 hover:bg-cyan-500/30 rounded-lg text-xs font-orbitron text-cyan-400 transition-colors active:scale-95 ${
+                    device.isIPhone ? 'min-h-12 touch-target' : ''
+                  }`}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   data-testid="button-toggle-blueprints-mobile"

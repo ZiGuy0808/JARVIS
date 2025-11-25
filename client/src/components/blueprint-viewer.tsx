@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { HolographicSuit3D } from '@/components/holographic-suit-3d';
 import { ChevronRight, Zap, Shield, Cpu } from 'lucide-react';
 
 interface IronManSuit {
@@ -121,6 +122,12 @@ export function BlueprintViewer() {
             </Card>
           ) : suit ? (
             <div className="space-y-4">
+              {/* 3D Holographic Suit Viewer */}
+              <HolographicSuit3D
+                suitName={suit.name}
+                color={suit.color}
+                markNumber={suit.markNumber}
+              />
               {/* Main Suit Card */}
               <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/30">
                 <CardHeader>

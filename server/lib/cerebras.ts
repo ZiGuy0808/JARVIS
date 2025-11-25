@@ -1,3 +1,5 @@
+import { getLocationNarrative } from './location-context';
+
 interface CerebrasMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -62,9 +64,15 @@ TONY STARK'S CURRENT STATUS:
 `;
 
   if (tonyLocation) {
+    const locationNarrative = getLocationNarrative(tonyLocation.location);
     prompt += `- Location: ${tonyLocation.location}
 - Current Activity: ${tonyLocation.activity}
-- Coordinates: Latitude ${tonyLocation.coordinates.lat.toFixed(2)}°, Longitude ${tonyLocation.coordinates.lng.toFixed(2)}°`;
+- Coordinates: Latitude ${tonyLocation.coordinates.lat.toFixed(2)}°, Longitude ${tonyLocation.coordinates.lng.toFixed(2)}°
+
+MISSION CONTEXT:
+${locationNarrative}
+
+When users ask about why Tony is at this location, explain naturally using the above context. Connect the location to MCU missions, Stark Industries operations, or personal reasons that fit Tony's character and capabilities.`;
   } else {
     prompt += `- Please refer to Tony's current location and activities when asked.`;
   }
