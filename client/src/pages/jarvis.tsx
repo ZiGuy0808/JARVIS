@@ -20,16 +20,10 @@ export default function JarvisPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(true);
   const recognitionRef = useRef<any>(null);
-  const synthRef = useRef<SpeechSynthesis | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Initialize speech synthesis
-    if ('speechSynthesis' in window) {
-      synthRef.current = window.speechSynthesis;
-    }
-
     // Initialize speech recognition with feature detection
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     
@@ -86,9 +80,6 @@ export default function JarvisPage() {
           // Ignore errors during cleanup
         }
       }
-      if (synthRef.current) {
-        synthRef.current.cancel();
-      }
     };
   }, []);
 
@@ -128,22 +119,9 @@ export default function JarvisPage() {
         return updated;
       });
 
-      // Start speaking/waveform animation immediately
+      // Start waveform animation immediately
       setIsSpeaking(true);
-      console.log('[CHAT DEBUG] 6. Set isSpeaking to true');
-
-      // Speak the response (but don't stop isSpeaking here - let the typing complete callback handle it)
-      if (synthRef.current) {
-        const utterance = new SpeechSynthesisUtterance(data.response);
-        utterance.lang = 'en-GB'; // British accent
-        utterance.rate = 0.9;
-        utterance.pitch = 1.0;
-
-        synthRef.current.speak(utterance);
-        console.log('[CHAT DEBUG] 7. Started speaking');
-      } else {
-        console.log('[CHAT DEBUG] 7b. synthRef.current is null, no speech');
-      }
+      console.log('[CHAT DEBUG] 6. Set isSpeaking to true for waveform animation');
 
       if (data.isEasterEgg) {
         toast({
