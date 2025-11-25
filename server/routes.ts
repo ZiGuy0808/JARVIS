@@ -263,15 +263,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Quiz session tracking
-  const sessionQuestions = new Map<string, Set<number>>();
+  // Quiz session tracking - with auto-cleanup after 30 minutes
+  const sessionQuestions = new Map<string, { questions: Set<number>; timestamp: number }>();
+  
+  // Cleanup old sessions every 5 minutes
+  setInterval(() => {
+    const now = Date.now();
+    const toDelete: string[] = [];
+    sessionQuestions.forEach((data, sessionId) => {
+      if (now - data.timestamp > 30 * 60 * 1000) { // 30 minute timeout
+        toDelete.push(sessionId);
+      }
+    });
+    toDelete.forEach(sessionId => sessionQuestions.delete(sessionId));
+  }, 5 * 60 * 1000);
 
   // Get new session ID
   app.get("/api/tony-quiz/start", (req, res) => {
     try {
       const mode = (req.query.mode as string) || 'regular';
       const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      sessionQuestions.set(sessionId, new Set());
+      sessionQuestions.set(sessionId, { questions: new Set(), timestamp: Date.now() });
       
       res.json({ sessionId, mode });
     } catch (error) {
@@ -287,39 +299,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sessionId = (req.query.sessionId as string) || '';
       const mode = (req.query.mode as string) || 'regular';
 
-      const usedIds = sessionQuestions.get(sessionId) || new Set();
+      // Initialize or get session
+      if (!sessionQuestions.has(sessionId)) {
+        sessionQuestions.set(sessionId, { questions: new Set(), timestamp: Date.now() });
+      }
+      
+      const sessionData = sessionQuestions.get(sessionId)!;
+      sessionData.timestamp = Date.now(); // Update timestamp for cleanup
+      const usedIds = sessionData.questions;
       
       let question;
       if (mode === 'endless') {
-        // For endless mode after 10 questions, occasionally use web-searched extreme questions
-        if (questionNumber >= 10) {
-          const { getExtremeWebSearchQuestion } = await import('./lib/tony-stark-quiz');
-          const webQuestion = await getExtremeWebSearchQuestion(usedIds, questionNumber);
-          if (webQuestion) {
-            question = webQuestion;
-          } else {
-            question = getRandomUnusedQuestion(usedIds);
-          }
+        // For endless mode, always try to get extreme AI questions
+        const { getExtremeWebSearchQuestion } = await import('./lib/tony-stark-quiz');
+        const extremeQuestion = await getExtremeWebSearchQuestion(usedIds, questionNumber);
+        if (extremeQuestion) {
+          question = extremeQuestion;
         } else {
           question = getRandomUnusedQuestion(usedIds);
         }
       } else {
-        // For regular mode, use progressive difficulty
+        // For regular mode, use progressive difficulty (questions 1-10)
         question = getQuestionByDifficulty(questionNumber);
       }
       
       if (question) {
         usedIds.add(question.id);
-        sessionQuestions.set(sessionId, usedIds);
+        sessionQuestions.set(sessionId, sessionData);
       }
       
       // For endless mode, emphasize the extreme difficulty
       let difficultyIndicator = `Difficulty: ${question.difficulty}/10`;
       if (mode === 'endless') {
-        if (questionNumber >= 10) {
-          difficultyIndicator = '🔥💀 EXTREME MODE - WEB-SEARCHED NIGHTMARES 💀🔥';
+        if (questionNumber >= 8) {
+          difficultyIndicator = '🔥💀 AI-GENERATED NIGHTMARE - EXTREMELY HARD 💀🔥';
         } else {
-          difficultyIndicator = '🔥 EXTREMELY HARD MODE - NO MERCY 🔥';
+          difficultyIndicator = '🔥 ENDLESSLY HARD - PREPARE YOURSELF 🔥';
         }
       }
       

@@ -251,81 +251,118 @@ export function getRandomUnusedQuestion(usedIds: Set<number>): TonySurvivalQuest
 }
 
 export async function getExtremeWebSearchQuestion(usedIds: Set<number>, questionCount: number): Promise<TonySurvivalQuestion | null> {
-  // Only trigger web search after reaching extreme difficulty (10+ questions in endless mode)
-  if (questionCount < 10) {
+  // Trigger AI-generated extreme questions after 8+ questions in endless mode
+  if (questionCount < 8) {
     return null;
   }
 
-  // 40% chance to use web search for extreme questions
-  if (Math.random() > 0.4) {
+  // 70% chance to use AI-generated extreme questions (higher frequency)
+  if (Math.random() > 0.7) {
     return null;
-  }
-
-  const apiKey = process.env.TAVILY_API_KEY;
-  if (!apiKey) {
-    return null; // Fallback to regular questions if no API key
   }
 
   try {
-    const searchTopics = [
-      "What obscure Tony Stark detail appears in MCU deleted scenes",
-      "What rare Iron Man suit feature was mentioned only once",
-      "What Tony Stark improvised line became iconic in the MCU",
-      "What hidden Iron Man easter egg appears in Avengers",
-      "What technical specification of the arc reactor was revealed",
-      "What Robert Downey Jr ad-libbed in Iron Man 3",
-      "What obscure Mark suit number appears briefly in MCU",
-      "What Tony Stark habit was inspired by real life"
+    // Use Cerebras to generate EXTREMELY hard Tony Stark questions
+    const { callCerebras } = await import('./cerebras');
+    
+    const extremeTopics = [
+      "Generate the HARDEST possible Tony Stark MCU trivia question that only hardcore fans would know. Include obscure suit details, deleted scenes, or specific dialogue.",
+      "Create an ultra-difficult Iron Man question about Arc Reactor specifications, technical jargon, or MCU timeline inconsistencies that appeared only briefly.",
+      "Make an EXTREMELY hard question about Tony Stark's relationships with specific Avengers, including subtle character development moments few remember.",
+      "Generate the most advanced question about Tony's mental state, PTSD, or character psychology across all MCU films - something only die-hard fans catch.",
+      "Create an extremely difficult question about specific Iron Man suit numbers, their capabilities, and which films they appeared in - require deep MCU knowledge.",
+      "Generate a question about obscure Tony Stark easter eggs, cameos, or references that hardcore MCU fans debate on forums.",
+      "Make the hardest possible question about Tony Stark's technology, inventions, or technical achievements mentioned across MCU films."
     ];
 
-    const randomTopic = searchTopics[Math.floor(Math.random() * searchTopics.length)];
+    const randomTopic = extremeTopics[Math.floor(Math.random() * extremeTopics.length)];
     
-    const response = await fetch('https://api.tavily.com/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: apiKey,
-        query: `Iron Man MCU ${randomTopic}`,
-        max_results: 2,
-        include_answer: true
-      })
-    });
+    // Call Cerebras to generate the question
+    const prompt = `${randomTopic}
 
-    if (!response.ok) {
-      return null;
+Format EXACTLY as:
+QUESTION: [The extremely hard trivia question]
+CORRECT: [The correct answer - make it specific and tricky]
+WRONG1: [Plausible wrong answer that hardcore fans might confuse it with]
+WRONG2: [Another plausible wrong answer - similar but subtly different]
+WRONG3: [A third plausible wrong answer with same theme]
+
+Requirements:
+- Questions must be EXTREMELY hard (difficulty 9-10)
+- Answers must be specific, not vague
+- All options must be plausible and confusing for even experienced MCU fans
+- Include specific numbers, names, or details that are hard to remember
+- Make it about Tony Stark, Iron Man, Arc Reactor, or MCU events featuring Tony`;
+
+    const { response } = await callCerebras(prompt, [], undefined, undefined, '');
+    
+    // Parse the response
+    const lines = response.split('\n');
+    let question = '';
+    let correctAnswer = '';
+    let wrong1 = '';
+    let wrong2 = '';
+    let wrong3 = '';
+    
+    let currentSection = '';
+    for (const line of lines) {
+      if (line.startsWith('QUESTION:')) {
+        currentSection = 'question';
+        question = line.replace('QUESTION:', '').trim();
+      } else if (line.startsWith('CORRECT:')) {
+        currentSection = 'correct';
+        correctAnswer = line.replace('CORRECT:', '').trim();
+      } else if (line.startsWith('WRONG1:')) {
+        currentSection = 'wrong1';
+        wrong1 = line.replace('WRONG1:', '').trim();
+      } else if (line.startsWith('WRONG2:')) {
+        currentSection = 'wrong2';
+        wrong2 = line.replace('WRONG2:', '').trim();
+      } else if (line.startsWith('WRONG3:')) {
+        currentSection = 'wrong3';
+        wrong3 = line.replace('WRONG3:', '').trim();
+      } else if (line.trim() && currentSection) {
+        // Append continuation lines
+        if (currentSection === 'question') question += ' ' + line;
+        else if (currentSection === 'correct') correctAnswer += ' ' + line;
+        else if (currentSection === 'wrong1') wrong1 += ' ' + line;
+        else if (currentSection === 'wrong2') wrong2 += ' ' + line;
+        else if (currentSection === 'wrong3') wrong3 += ' ' + line;
+      }
     }
-
-    const data = await response.json();
     
-    if (data.answer && data.results && data.results.length > 0) {
-      const correctAnswer = data.answer.substring(0, 100); // Limit length
-      
-      // Generate plausible wrong answers
+    const questionMatch = question;
+    const correctMatch = correctAnswer;
+    const wrong1Match = wrong1;
+    const wrong2Match = wrong2;
+    const wrong3Match = wrong3;
+
+    if (questionMatch && correctMatch && wrong1Match && wrong2Match && wrong3Match) {
       const wrongAnswers = [
-        "This was never mentioned in the MCU",
-        "This detail appears in the comics, not MCU",
-        "This is a common fan theory, not canon"
+        wrong1Match,
+        wrong2Match,
+        wrong3Match
       ];
-      
-      // Shuffle answers
-      const allAnswers = [correctAnswer, ...wrongAnswers];
+
+      // Shuffle answers and track correct index
+      const allAnswers = [correctMatch, ...wrongAnswers];
       const shuffled = allAnswers.sort(() => Math.random() - 0.5);
-      const correctIndex = shuffled.indexOf(correctAnswer);
-      
+      const correctIndex = shuffled.indexOf(correctMatch);
+
       return {
         id: 10000 + questionCount,
-        question: `🔍 EXTREME WEB-SEARCHED: ${randomTopic}?`,
+        question: `🔥💀 NIGHTMARE EXTREME: ${questionMatch}`,
         options: shuffled,
         correct: correctIndex,
-        difficulty: 10,
-        category: "extreme-web-search",
-        explanation: `Based on web search: ${data.answer}`
+        difficulty: 9,
+        category: "ai-extreme",
+        explanation: `The correct answer is: ${correctMatch} - This is an extremely advanced MCU detail.`
       };
     }
-    
+
     return null;
   } catch (error) {
-    console.error('Failed to generate web search question:', error);
+    console.error('Failed to generate extreme AI question:', error);
     return null;
   }
 }
