@@ -268,6 +268,7 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
     const spamCountRef = useRef<number>(0);
     const chatActiveRef = useRef<boolean>(false);
     const messageCountRef = useRef<number>(0); // Track message count for realistic timing
+    const currentContactIdRef = useRef<string | null>(null); // Track current contact for async validation
 
     // Track latest messages for each contact (for the list view) with timestamp for sorting
     const [contactPreviews, setContactPreviews] = useState<Record<string, { text: string; time: string; timestamp: number }>>({});
@@ -463,6 +464,9 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
 
     useEffect(() => {
         if (selectedContact) {
+            // CRITICAL: Update the ref immediately when contact changes
+            currentContactIdRef.current = selectedContact.id;
+
             // Wait for query to complete before setting history
             if (!historyLoading) {
                 // Use server history if available, otherwise use defaults
@@ -482,6 +486,7 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
             messageCountRef.current = 0; // Reset for new conversation
         } else {
             // Deactivate chat when no contact selected
+            currentContactIdRef.current = null;
             chatActiveRef.current = false;
             if (followUpTimerRef.current) {
                 clearTimeout(followUpTimerRef.current);
@@ -546,9 +551,9 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
             return;
         }
 
-        // VALIDATE: Check contact hasn't changed
-        if (selectedContact?.id !== originalContactId) {
-            console.log(`[PHONE] Follow-up cancelled - switched from ${originalContactId} to ${selectedContact?.id}`);
+        // VALIDATE: Check contact hasn't changed (use ref for real-time value)
+        if (currentContactIdRef.current !== originalContactId) {
+            console.log(`[PHONE] Follow-up cancelled - switched from ${originalContactId} to ${currentContactIdRef.current}`);
             return;
         }
 
@@ -570,8 +575,8 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
             });
 
             // VALIDATE AGAIN: Check contact hasn't changed after API call
-            if (selectedContact?.id !== originalContactId) {
-                console.log(`[PHONE] Follow-up response discarded - switched from ${originalContactId} to ${selectedContact?.id}`);
+            if (currentContactIdRef.current !== originalContactId) {
+                console.log(`[PHONE] Follow-up response discarded - switched from ${originalContactId} to ${currentContactIdRef.current}`);
                 return;
             }
 
@@ -580,7 +585,7 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
             // Add messages to chat with realistic delays
             for (const text of messages) {
                 // VALIDATE before each message
-                if (selectedContact?.id !== originalContactId) {
+                if (currentContactIdRef.current !== originalContactId) {
                     console.log(`[PHONE] Message discarded mid-stream - contact changed`);
                     return;
                 }
@@ -590,7 +595,7 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                 setIsTyping(false);
 
                 // Final validation before adding
-                if (selectedContact?.id !== originalContactId) return;
+                if (currentContactIdRef.current !== originalContactId) return;
 
                 setChatHistory(prev => [...prev, {
                     from: originalContactId,
@@ -606,7 +611,7 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
         }
 
         // Schedule another follow-up (only if still on same contact)
-        if (selectedContact?.id === originalContactId) {
+        if (currentContactIdRef.current === originalContactId) {
             scheduleNextFollowUp();
         }
     }, [selectedContact, chatHistory]);
@@ -653,36 +658,37 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
             const originalContactId = selectedContact?.id;
             const originalContactName = selectedContact?.realName;
 
+            // Also capture current chat history for saving
+            const currentHistory = [...chatHistory];
+
             const response = await apiRequest('POST', '/api/phone/chat', {
                 characterId: originalContactId,
                 characterName: originalContactName,
                 message,
-                context: chatHistory.slice(-6).map(m => `${m.from === 'tony' ? 'Tony' : originalContactName}: ${m.text}`).join('\n')
+                context: currentHistory.slice(-6).map(m => `${m.from === 'tony' ? 'Tony' : originalContactName}: ${m.text}`).join('\n')
             });
 
-            // Return the response WITH the original contact ID for validation
-            return { ...response, _originalContactId: originalContactId };
+            // Return the response WITH the original contact info for proper handling
+            return {
+                ...response,
+                _originalContactId: originalContactId,
+                _originalContactName: originalContactName,
+                _originalHistory: currentHistory
+            };
         },
         onSuccess: async (data) => {
-            // CRITICAL: Validate we're still on the same contact!
-            if (data._originalContactId !== selectedContact?.id) {
-                console.log(`[PHONE] Response discarded - switched from ${data._originalContactId} to ${selectedContact?.id}`);
-                return; // Discard response - user switched contacts
-            }
+            const originalContactId = data._originalContactId;
+            const messages = data.messages || [data.response];
 
-            // Clear any follow-up timer since they're responding
+            // Clear any follow-up timer
             if (followUpTimerRef.current) {
                 clearTimeout(followUpTimerRef.current);
             }
 
-            const messages = data.messages || [data.response];
-
             // Realistic response timing - character specific
-            // Spider-Man replies FAST (he's so eager!), others take longer
             let minDelay, maxDelay;
-            const characterId = selectedContact?.id;
 
-            if (characterId === 'peter') {
+            if (originalContactId === 'peter') {
                 // Spider-Man is ALWAYS eager to reply
                 if (messageCountRef.current < 2) {
                     minDelay = 5000;   // 5 seconds minimum
@@ -692,69 +698,72 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                     maxDelay = 10000;  // 10 seconds
                 }
             } else if (messageCountRef.current < 2) {
-                // First responses take longer for other characters - they might be busy!
                 minDelay = 30000;  // 30 seconds minimum
-                maxDelay = 180000; // 3 minutes maximum (reduced from 5)
+                maxDelay = 180000; // 3 minutes maximum
             } else if (messageCountRef.current < 5) {
-                // Getting into the conversation
                 minDelay = 10000;  // 10 seconds
                 maxDelay = 60000;  // 1 minute
             } else {
-                // Active conversation - replies are quicker but still not instant
                 minDelay = 5000;   // 5 seconds
                 maxDelay = 30000;  // 30 seconds
             }
 
             const replyDelay = minDelay + Math.random() * (maxDelay - minDelay);
-            console.log(`[PHONE] ${selectedContact?.nickname} will reply in ${Math.round(replyDelay / 1000)}s (message #${messageCountRef.current + 1})...`);
+            console.log(`[PHONE] ${originalContactId} will reply in ${Math.round(replyDelay / 1000)}s...`);
 
-            // Wait most of the delay before showing typing indicator
-            const typingShowTime = Math.max(1500, replyDelay - 2000); // Show typing 2 seconds before message
+            // Wait before showing typing
+            const typingShowTime = Math.max(1500, replyDelay - 2000);
             await new Promise(resolve => setTimeout(resolve, typingShowTime));
 
-            // Show typing indicator
-            setIsTyping(true);
-
-            // Wait the remaining time with typing shown
-            await new Promise(resolve => setTimeout(resolve, replyDelay - typingShowTime));
-
-            // Add messages with small delays between them (like real typing)
-            for (const text of messages) {
-                // Validate still on same contact before each message
-                if (data._originalContactId !== selectedContact?.id) {
-                    setIsTyping(false);
-                    return;
-                }
-
-                // Show typing briefly before each message
+            // Only show typing indicator if still on this contact
+            if (currentContactIdRef.current === originalContactId) {
                 setIsTyping(true);
-                await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1500));
-                setIsTyping(false);
-
-                setChatHistory(prev => [...prev, {
-                    from: selectedContact?.id || 'unknown',
-                    text: text,
-                    time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-                }]);
-
-                messageCountRef.current++;
             }
 
-            setIsTyping(false);
+            await new Promise(resolve => setTimeout(resolve, replyDelay - typingShowTime));
 
-            // Start follow-up timer for characters (they'll spam if you don't reply)
-            lastCharacterMessageRef.current = Date.now();
-            scheduleNextFollowUp();
+            // Build the new messages to add
+            const newMessages = messages.map((text: string) => ({
+                from: originalContactId,
+                text: text,
+                time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+            }));
 
-            // Save to server
+            // ALWAYS save to server with the ORIGINAL contact ID (regardless of current view)
+            const fullHistory = [...data._originalHistory, ...newMessages];
             try {
                 await fetch('/api/phone/save', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ characterId: selectedContact?.id, messages: [...chatHistory, ...messages.map((text: string) => ({ from: selectedContact?.id || 'unknown', text, time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }))] })
+                    body: JSON.stringify({ characterId: originalContactId, messages: fullHistory })
                 });
+                console.log(`[PHONE] Saved ${newMessages.length} messages to ${originalContactId}'s chat`);
             } catch (e) {
-                console.error('[PHONE CHAT] Failed to save history:', e);
+                console.error('[PHONE] Failed to save:', e);
+            }
+
+            // Only update local UI if still viewing the same contact
+            if (currentContactIdRef.current === originalContactId) {
+                setIsTyping(false);
+
+                for (const msg of newMessages) {
+                    setIsTyping(true);
+                    await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1500));
+                    setIsTyping(false);
+
+                    // Final check before adding to UI
+                    if (currentContactIdRef.current === originalContactId) {
+                        setChatHistory(prev => [...prev, msg]);
+                    }
+                    messageCountRef.current++;
+                }
+
+                setIsTyping(false);
+                lastCharacterMessageRef.current = Date.now();
+                scheduleNextFollowUp();
+            } else {
+                console.log(`[PHONE] Response saved to ${originalContactId} but not shown (viewing ${currentContactIdRef.current})`);
+                setIsTyping(false);
             }
         },
         onError: (error) => {
