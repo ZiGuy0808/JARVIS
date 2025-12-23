@@ -15,7 +15,7 @@ const CONTACTS: Record<string, { nickname: string; realName: string; avatarUrl: 
     bruce: { nickname: 'Science Bro 🧬', realName: 'Bruce Banner', avatarUrl: '/api/assets/profile_pictures/bruce.png', color: 'from-green-600 to-green-800', spamLevel: 'low' }
 };
 
-interface Notification {
+export interface Notification {
     id: string;
     characterId: string;
     message: string;
@@ -25,6 +25,9 @@ interface Notification {
 interface PhoneNotificationsProps {
     onOpenPhone: () => void;
     onNotification?: (characterId: string, characterName: string, message: string) => void;
+    notifications: Notification[];
+    onDismiss: (id: string) => void;
+    onAddInternal: (n: Notification) => void;
 }
 
 // Jarvis comments for different characters
@@ -72,8 +75,7 @@ const JARVIS_COMMENTS: Record<string, string[]> = {
     ],
 };
 
-export function PhoneNotifications({ onOpenPhone, onNotification }: PhoneNotificationsProps) {
-    const [notifications, setNotifications] = useState<Notification[]>([]);
+export function PhoneNotifications({ onOpenPhone, onNotification, notifications, onDismiss, onAddInternal }: PhoneNotificationsProps) {
     const [lastCheckTime, setLastCheckTime] = useState<Record<string, number>>({});
     const notificationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -126,11 +128,7 @@ export function PhoneNotifications({ onOpenPhone, onNotification }: PhoneNotific
                     time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
                 };
 
-                setNotifications(prev => {
-                    // Keep only last 3 notifications
-                    const updated = [...prev, newNotification].slice(-3);
-                    return updated;
-                });
+                onAddInternal(newNotification);
 
                 // Trigger Jarvis comment
                 if (onNotification) {
@@ -142,13 +140,13 @@ export function PhoneNotifications({ onOpenPhone, onNotification }: PhoneNotific
                 // Auto-dismiss after 10 seconds (except Spider-Man - 6 seconds bc he spams)
                 const dismissTime = selectedId === 'peter' ? 6000 : 10000;
                 setTimeout(() => {
-                    setNotifications(prev => prev.filter(n => n.id !== newNotification.id));
+                    onDismiss(newNotification.id);
                 }, dismissTime);
             }
         } catch (error) {
             console.error('[NOTIFICATIONS] Failed to generate notification:', error);
         }
-    }, [onNotification]);
+    }, [onNotification, onAddInternal, onDismiss]);
 
     // Schedule next notification based on character spam levels
     const scheduleNextNotification = useCallback(() => {
@@ -182,7 +180,7 @@ export function PhoneNotifications({ onOpenPhone, onNotification }: PhoneNotific
     }, [scheduleNextNotification]);
 
     const dismissNotification = (id: string) => {
-        setNotifications(prev => prev.filter(n => n.id !== id));
+        onDismiss(id);
     };
 
     if (notifications.length === 0) return null;

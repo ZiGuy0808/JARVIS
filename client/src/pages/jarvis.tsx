@@ -17,7 +17,7 @@ import { motion } from 'framer-motion';
 import { apiRequest } from '@/lib/queryClient';
 import { useDeviceDetection, useBatteryStatus } from '@/hooks/use-device-detection';
 import { TonysPhoneMirror } from '@/components/tonys-phone-mirror';
-import { PhoneNotifications } from '@/components/phone-notifications';
+import { PhoneNotifications, type Notification } from '@/components/phone-notifications';
 import { Zap, Smartphone } from 'lucide-react';
 
 interface StarkScanData {
@@ -62,6 +62,7 @@ export default function JarvisPage() {
   const queryClient = useQueryClient();
   const device = useDeviceDetection();
   const battery = useBatteryStatus();
+  const [phoneNotifications, setPhoneNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
     // Fetch initial Stark Scan data
@@ -277,6 +278,35 @@ export default function JarvisPage() {
     // Stop speaking animation after a bit
     setTimeout(() => setIsSpeaking(false), 3000);
   }, []);
+
+  const handlePhoneNotificationDismiss = useCallback((id: string) => {
+    setPhoneNotifications(prev => prev.filter(n => n.id !== id));
+  }, []);
+
+  const handlePhoneNotificationAdd = useCallback((n: Notification) => {
+    setPhoneNotifications(prev => [...prev, n].slice(-3));
+  }, []);
+
+  // Called by TonysPhoneMirror for background messages
+  const handleExternalPhoneAlert = useCallback((id: string, name: string, message: string) => {
+    // 1. Show Bubble
+    const newNotification: Notification = {
+      id: Date.now().toString(),
+      characterId: id,
+      message: message,
+      time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    };
+    setPhoneNotifications(prev => [...prev, newNotification].slice(-3));
+
+    // 2. Jarvis Voice
+    const comment = `Sir, incoming message from ${name}.`;
+    handlePhoneNotification(id, name, comment);
+
+    // 3. Auto dismiss
+    setTimeout(() => {
+      setPhoneNotifications(prev => prev.filter(n => n.id !== newNotification.id));
+    }, 8000);
+  }, [handlePhoneNotification]);
 
   const handleTypingComplete = useCallback(() => {
     console.log('[CHAT DEBUG] 8. handleTypingComplete called');
@@ -579,10 +609,17 @@ export default function JarvisPage() {
       <PhoneNotifications
         onOpenPhone={() => setShowPhone(true)}
         onNotification={handlePhoneNotification}
+        notifications={phoneNotifications}
+        onDismiss={handlePhoneNotificationDismiss}
+        onAddInternal={handlePhoneNotificationAdd}
       />
 
       {/* Phone Mirror Component - Rendered at root level for overlay */}
-      <TonysPhoneMirror isOpen={showPhone} onClose={() => setShowPhone(false)} />
+      <TonysPhoneMirror
+        isOpen={showPhone}
+        onClose={() => setShowPhone(false)}
+        onNotification={handleExternalPhoneAlert}
+      />
     </div>
   );
 }

@@ -248,7 +248,7 @@ const OPENER_PROMPTS: Record<string, string[]> = {
 interface PhoneMirrorProps {
     isOpen: boolean;
     onClose: () => void;
-    onNotification?: (message: string) => void;
+    onNotification?: (id: string, name: string, message: string) => void;
 }
 
 export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirrorProps) {
@@ -763,7 +763,7 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                         setChatHistory(prev => [...prev, msg]);
                     } else {
                         // User left mid-stream
-                        onNotification?.(`${originalContactName}: ${msg.text}`);
+                        onNotification?.(originalContactId, originalContactName, msg.text);
                     }
                     messageCountRef.current++;
                 }
@@ -778,7 +778,7 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                 // Simulate delays for background arrival
                 for (const msg of newMessages) {
                     await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1500));
-                    onNotification?.(`${originalContactName}: ${msg.text}`);
+                    onNotification?.(originalContactId, originalContactName, msg.text);
                 }
             }
         },
