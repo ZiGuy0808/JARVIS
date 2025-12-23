@@ -60,8 +60,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         didSearch = searchContext.length > 0 && !searchContext.includes("unable to search");
       }
 
-      // Get conversation history from storage (last 10 messages)
-      const history = await storage.getRecentConversations(10);
+      // Get conversation history from storage (last 50 messages)
+      const history = await storage.getRecentConversations(50);
       const conversationHistory = history.map(msg => ({
         role: msg.role as 'user' | 'assistant',
         content: msg.content
