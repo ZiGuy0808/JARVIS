@@ -572,7 +572,7 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
 
         try {
             // Generate AI follow-up based on conversation context
-            const context = chatHistory.slice(-6).map(m =>
+            const context = chatHistory.slice(-50).map(m =>
                 `${m.from === 'tony' ? 'Tony' : originalContactName}: ${m.text}`
             ).join('\n');
 
@@ -676,7 +676,7 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                 characterId: originalContactId,
                 characterName: originalContactName,
                 message,
-                context: currentHistory.slice(-6).map(m => `${m.from === 'tony' ? 'Tony' : originalContactName}: ${m.text}`).join('\n')
+                context: currentHistory.slice(-50).map(m => `${m.from === 'tony' ? 'Tony' : originalContactName}: ${m.text}`).join('\n')
             });
 
             // Return the response WITH the original contact info for proper handling
