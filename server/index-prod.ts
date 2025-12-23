@@ -19,6 +19,12 @@ export async function serveStatic(app: Express, _server: Server) {
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
+    res.set({
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+      "Surrogate-Control": "no-store"
+    });
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jarvis-v1';
+const CACHE_NAME = 'jarvis-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -12,7 +12,6 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_ASSETS).catch((err) => {
         console.log('Cache addAll error:', err);
-        // Continue even if some assets fail to cache
         return Promise.resolve();
       });
     })
@@ -36,7 +35,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - Network-First for HTML, Cache-First for assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -46,13 +45,33 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Network-First strategy for navigation (HTML) to ensure fresh updates
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // Update cache with fresh version
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseToCache);
+          });
+          return response;
+        })
+        .catch(() => {
+          // Fallback to cache if offline
+          return caches.match(request);
+        })
+    );
+    return;
+  }
+
+  // Cache-First strategy for static assets
   event.respondWith(
     caches.match(request).then((response) => {
       if (response) {
         return response;
       }
       return fetch(request).then((response) => {
-        // Cache successful responses for non-API routes
         if (!response || response.status !== 200 || response.type === 'error') {
           return response;
         }

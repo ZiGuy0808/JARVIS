@@ -51,7 +51,15 @@ export async function setupVite(app: Express, server: Server) {
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
       const page = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+
+      // Explicitly prevent caching of index.html
+      res.status(200).set({
+        "Content-Type": "text/html",
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+        "Surrogate-Control": "no-store"
+      }).end(page);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
