@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -14,6 +14,7 @@ const CONTACTS = [
         avatarUrl: '/api/assets/profile_pictures/pepper.png',
         status: 'CEO, Stark Industries',
         color: 'from-orange-500 to-red-500',
+        spamLevel: 'low', // Pepper is patient
         history: [
             { from: 'pepper', text: "Tony, you missed the board meeting. Again.", time: '9:14 AM' },
             { from: 'tony', text: "In my defense, I was saving the world.", time: '9:15 AM' },
@@ -33,6 +34,7 @@ const CONTACTS = [
         avatarUrl: '/api/assets/profile_pictures/peter.png',
         status: 'Friendly Neighborhood...',
         color: 'from-red-500 to-blue-600',
+        spamLevel: 'extreme', // Peter SPAMS like crazy
         history: [
             { from: 'peter', text: "Mr. Stark!!", time: '3:42 PM' },
             { from: 'peter', text: "Mr. Stark are you there??", time: '3:42 PM' },
@@ -67,6 +69,7 @@ const CONTACTS = [
         avatarUrl: '/api/assets/profile_pictures/happy.png',
         status: 'Head of Security',
         color: 'from-amber-600 to-amber-800',
+        spamLevel: 'medium', // Happy complains but doesn't spam too much
         history: [
             { from: 'happy', text: "Boss, the kid won't stop calling me.", time: '2:15 PM' },
             { from: 'tony', text: "That's your job, Hap.", time: '2:16 PM' },
@@ -92,6 +95,7 @@ const CONTACTS = [
         avatarUrl: 'https://i.imgur.com/mVZ7B8M.jpg', // Chris Evans Cap
         status: 'Star Spangled Man',
         color: 'from-blue-600 to-red-500',
+        spamLevel: 'low', // Cap is patient and formal
         history: [
             { from: 'steve', text: "Tony, we need to talk about the Accords.", time: '10:30 AM' },
             { from: 'tony', text: "Do we though?", time: '10:35 AM' },
@@ -116,6 +120,7 @@ const CONTACTS = [
         avatarUrl: '/api/assets/profile_pictures/rhodey.png',
         status: 'War Machine Online',
         color: 'from-gray-600 to-gray-800',
+        spamLevel: 'medium', // Rhodey checks in like an old friend
         history: [
             { from: 'rhodey', text: "Tony, the Pentagon wants an update on the suit tech.", time: '11:30 AM' },
             { from: 'tony', text: "Tell them it's classified. Under Stark Industries.", time: '11:32 AM' },
@@ -140,6 +145,7 @@ const CONTACTS = [
         avatarUrl: 'https://i.imgur.com/0xqFqYx.jpg', // Scarlett Johansson Black Widow
         status: 'SHIELD Agent (Level 7)',
         color: 'from-gray-800 to-red-900',
+        spamLevel: 'none', // Nat sends one message and waits
         history: [
             { from: 'natasha', text: "Stark, check your secure server.", time: '4:20 PM' },
             { from: 'tony', text: "I'm busy building a lego death star.", time: '4:21 PM' },
@@ -158,6 +164,7 @@ const CONTACTS = [
         avatarUrl: 'https://i.imgur.com/WTZCbZk.jpg', // Samuel L Jackson
         status: 'Director of SHIELD',
         color: 'from-gray-900 to-black',
+        spamLevel: 'demanding', // Fury demands responses
         history: [
             { from: 'fury', text: "Stark. Report.", time: '6:00 AM' },
             { from: 'tony', text: "It's 6 AM. I'm sleeping.", time: '6:05 AM' },
@@ -178,6 +185,7 @@ const CONTACTS = [
         avatarUrl: '/api/assets/profile_pictures/bruce.png',
         status: 'Gamma Lab',
         color: 'from-green-600 to-green-800',
+        spamLevel: 'low', // Bruce is calm
         history: [
             { from: 'bruce', text: "Tony, are you sure these calculations are right?", time: '2:30 PM' },
             { from: 'tony', text: "I'm always right. What's the issue?", time: '2:31 PM' },
@@ -193,6 +201,110 @@ const CONTACTS = [
     }
 ];
 
+// Character-specific spam messages when ignored
+const SPAM_MESSAGES: Record<string, string[]> = {
+    peter: [
+        "Mr. Stark???",
+        "Hello?????",
+        "Are you there??",
+        "Mr. Stark are you mad at me??",
+        "Did I do something wrong??",
+        "Please respond!!",
+        "Is this about the building thing again?",
+        "I said I was sorry about the ferry!!",
+        "Mr. STAAARRRKKK!!!",
+        "I'm gonna assume you're busy saving the world",
+        "Or eating a cheeseburger",
+        "Can you at least send an emoji so I know you're alive??",
+        "👀",
+        "Mr. Stark I can see you read this!!"
+    ],
+    happy: [
+        "Boss?",
+        "Tony, I need an answer here",
+        "The kid is driving me crazy",
+        "TONY",
+        "I know you're reading these"
+    ],
+    fury: [
+        "Stark.",
+        "I know you're ignoring me.",
+        "Don't make me come find you.",
+        "This is a direct order.",
+        "You have 5 minutes to respond."
+    ],
+    rhodey: [
+        "Tony?",
+        "You there buddy?",
+        "Don't leave me hanging man",
+        "I know you saw this",
+        "MIT story goes public in 5..."
+    ],
+    pepper: [
+        "Tony?",
+        "I know you're in the lab.",
+        "Morgan asked about you.",
+        "Dinner is getting cold."
+    ],
+    steve: [
+        "Tony, please respond.",
+        "This is important.",
+        "I'll wait."
+    ],
+    natasha: [
+        "..."
+    ],
+    bruce: [
+        "Tony?",
+        "Just wanted to make sure you got my data.",
+        "No rush... just checking in."
+    ]
+};
+
+// Starter messages when you open the chat (character initiates)
+const OPENER_PROMPTS: Record<string, string[]> = {
+    peter: [
+        "MR STARK!! Perfect timing!! I was JUST about to text you!!",
+        "Oh hi Mr. Stark!! Are you there?? I have SO much to tell you!!",
+        "Mr. Stark!!! Something crazy happened on patrol today!!!"
+    ],
+    happy: [
+        "Oh good, you're here. I need to vent about the kid.",
+        "Boss, perfect timing. We have a situation.",
+        "Tony. The kid called me 37 times in the last hour."
+    ],
+    fury: [
+        "About time you checked your phone, Stark.",
+        "Stark. We need to talk. Now.",
+        "I've been waiting for you to show up."
+    ],
+    rhodey: [
+        "Hey man! Was just thinking about you.",
+        "Tony! Perfect timing, I've got news.",
+        "Yo, you ghosting me or what?"
+    ],
+    pepper: [
+        "Hey honey, I was just thinking about you.",
+        "Tony! Where are you? Morgan's asking for you.",
+        "Good timing - I need to talk to you about something."
+    ],
+    steve: [
+        "Tony. Glad you're here. We need to discuss something.",
+        "Tony, I've been meaning to reach out.",
+        "Good to see you checking in."
+    ],
+    natasha: [
+        "Stark. Good timing.",
+        "Check your secure server. Now.",
+        "I have intel you need to see."
+    ],
+    bruce: [
+        "Hey Tony! I was just running some calculations...",
+        "Oh, hi! Perfect timing, I wanted your opinion on something.",
+        "Tony! Are you in the lab? I have questions about the readings."
+    ]
+};
+
 interface PhoneMirrorProps {
     isOpen: boolean;
     onClose: () => void;
@@ -207,15 +319,57 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
     const [inputMessage, setInputMessage] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [isWaitingToReply, setIsWaitingToReply] = useState(false);
+    const [hasInitiatedChat, setHasInitiatedChat] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const followUpTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const autoMessageTimerRef = useRef<NodeJS.Timeout | null>(null);
     const lastTonyMessageRef = useRef<number>(0);
+    const lastCharacterMessageRef = useRef<number>(0);
+    const spamCountRef = useRef<number>(0);
+    const chatActiveRef = useRef<boolean>(false);
+
+    // Helper to send character messages with typing simulation
+    const sendCharacterMessage = useCallback(async (characterId: string, messages: string[]) => {
+        setIsTyping(true);
+        for (const text of messages) {
+            await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1700)); // Simulate typing delay
+            setChatHistory(prev => [...prev, {
+                from: characterId,
+                text: text,
+                time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+            }]);
+        }
+        setIsTyping(false);
+        lastCharacterMessageRef.current = Date.now();
+    }, []);
+
+    // Function to initiate chat if no history exists
+    const initiateChatIfNoHistory = useCallback(async (contact: typeof CONTACTS[0]) => {
+        if (!contact || hasInitiatedChat) return;
+
+        const serverHistoryData = await apiRequest('GET', `/api/phone/history/${contact.id}`);
+        const currentHistory = serverHistoryData.history?.length > 0 ? serverHistoryData.history : contact.history;
+
+        if (currentHistory.length === 0 || (currentHistory.length === 1 && currentHistory[0].from === 'tony')) {
+            // If history is empty or only contains Tony's message, character initiates
+            const openerMessages = OPENER_PROMPTS[contact.id];
+            if (openerMessages && openerMessages.length > 0) {
+                const message = openerMessages[Math.floor(Math.random() * openerMessages.length)];
+                console.log(`[PHONE] ${contact.nickname} initiating chat: "${message}"`);
+                await sendCharacterMessage(contact.id, [message]);
+                setHasInitiatedChat(true);
+            }
+        }
+    }, [hasInitiatedChat, sendCharacterMessage]);
 
     // Clean up timers on unmount or contact change
     useEffect(() => {
         return () => {
             if (followUpTimerRef.current) {
                 clearTimeout(followUpTimerRef.current);
+            }
+            if (autoMessageTimerRef.current) {
+                clearTimeout(autoMessageTimerRef.current);
             }
         };
     }, [selectedContact]);
@@ -273,6 +427,22 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
         if (selectedContact) {
             // Use server history if available, otherwise use defaults
             setChatHistory(serverHistory || [...selectedContact.history]);
+
+            // Activate chat system
+            chatActiveRef.current = true;
+            spamCountRef.current = 0;
+            setHasInitiatedChat(false);
+
+            // Reset message timestamps  
+            lastTonyMessageRef.current = 0;
+            lastCharacterMessageRef.current = Date.now();
+        } else {
+            // Deactivate chat when no contact selected
+            chatActiveRef.current = false;
+            if (followUpTimerRef.current) {
+                clearTimeout(followUpTimerRef.current);
+                followUpTimerRef.current = null;
+            }
         }
     }, [selectedContact, serverHistory]);
 
@@ -281,39 +451,85 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [chatHistory, isTyping, isWaitingToReply]);
 
-    // Spider-Man follow-up spam function
-    const sendFollowUp = async (characterId: string, characterName: string) => {
-        if (characterId !== 'peter') return; // Only Spider-Man spams
+    // Universal follow-up spam function - works for all characters based on spamLevel
+    const sendFollowUp = useCallback(async () => {
+        if (!selectedContact || !chatActiveRef.current) return;
 
-        // Check if Tony has replied recently (within last 20 seconds)
-        if (Date.now() - lastTonyMessageRef.current < 20000) return;
+        const characterId = selectedContact.id;
+        const spamLevel = selectedContact.spamLevel;
 
-        console.log('[PHONE] Spider-Man is getting impatient...');
+        // Check if Tony has replied recently
+        const timeSinceLastTonyMessage = Date.now() - lastTonyMessageRef.current;
+        const timeSinceLastCharacterMessage = Date.now() - lastCharacterMessageRef.current;
 
-        setIsTyping(true);
+        // Different spam thresholds based on character
+        let spamThreshold = 60000; // 1 minute default
+        let maxSpamMessages = 1;
+        let spamChance = 0.5;
 
-        // Spider-Man follow-up messages
-        const spamMessages = [
-            "Mr. Stark???",
-            "Hello?????",
-            "Are you there??",
-            "Mr. Stark are you mad at me??",
-            "Did I do something wrong??",
-            "Please respond!!",
-            "Is this about the building thing again?",
-            "I said I was sorry about the ferry!!"
-        ];
+        switch (spamLevel) {
+            case 'extreme': // Peter - spams like crazy
+                spamThreshold = 10000; // 10 seconds!
+                maxSpamMessages = 4;
+                spamChance = 0.9;
+                break;
+            case 'demanding': // Fury - demands responses
+                spamThreshold = 25000;
+                maxSpamMessages = 2;
+                spamChance = 0.7;
+                break;
+            case 'medium': // Happy, Rhodey
+                spamThreshold = 40000;
+                maxSpamMessages = 2;
+                spamChance = 0.5;
+                break;
+            case 'low': // Pepper, Steve, Bruce
+                spamThreshold = 90000;
+                maxSpamMessages = 1;
+                spamChance = 0.3;
+                break;
+            case 'none': // Natasha - very rare
+                spamThreshold = 180000;
+                maxSpamMessages = 1;
+                spamChance = 0.1;
+                break;
+        }
 
-        // Pick 1-3 random messages
-        const numMessages = 1 + Math.floor(Math.random() * 3);
+        // Don't spam if Tony replied recently
+        if (timeSinceLastTonyMessage < spamThreshold) {
+            // Reschedule for later
+            scheduleNextFollowUp();
+            return;
+        }
+
+        // Random chance to not spam (feels more natural)
+        if (Math.random() > spamChance) {
+            scheduleNextFollowUp();
+            return;
+        }
+
+        console.log(`[PHONE] ${selectedContact.nickname} is getting impatient (spamLevel: ${spamLevel})...`);
+
+        const spamMessages = SPAM_MESSAGES[characterId] || ["Hey?"];
+
+        // Pick random messages
+        const numMessages = 1 + Math.floor(Math.random() * maxSpamMessages);
         const selectedMessages: string[] = [];
-        for (let i = 0; i < numMessages; i++) {
-            const randomIdx = Math.floor(Math.random() * spamMessages.length);
+        const usedIndices = new Set<number>();
+
+        for (let i = 0; i < numMessages && usedIndices.size < spamMessages.length; i++) {
+            let randomIdx = Math.floor(Math.random() * spamMessages.length);
+            while (usedIndices.has(randomIdx)) {
+                randomIdx = Math.floor(Math.random() * spamMessages.length);
+            }
+            usedIndices.add(randomIdx);
             selectedMessages.push(spamMessages[randomIdx]);
         }
 
+        setIsTyping(true);
+
         for (const text of selectedMessages) {
-            await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+            await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 800));
             setChatHistory(prev => [...prev, {
                 from: characterId,
                 text: text,
@@ -322,12 +538,47 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
         }
 
         setIsTyping(false);
+        lastCharacterMessageRef.current = Date.now();
+        spamCountRef.current++;
 
-        // Schedule another follow-up in 30-60 seconds if Tony still doesn't reply
+        // Schedule another follow-up
+        scheduleNextFollowUp();
+    }, [selectedContact]);
+
+    // Schedule the next follow-up based on character
+    const scheduleNextFollowUp = useCallback(() => {
+        if (!selectedContact || !chatActiveRef.current) return;
+
+        // Clear existing timer
+        if (followUpTimerRef.current) {
+            clearTimeout(followUpTimerRef.current);
+        }
+
+        let baseDelay = 30000;
+        switch (selectedContact.spamLevel) {
+            case 'extreme': baseDelay = 8000; break; // Spider-Man: 8-16 seconds
+            case 'demanding': baseDelay = 20000; break;
+            case 'medium': baseDelay = 35000; break;
+            case 'low': baseDelay = 60000; break;
+            case 'none': baseDelay = 120000; break;
+        }
+
+        const delay = baseDelay + Math.random() * baseDelay;
+        console.log(`[PHONE] Next follow-up from ${selectedContact.nickname} in ${Math.round(delay / 1000)}s`);
+
         followUpTimerRef.current = setTimeout(() => {
-            sendFollowUp(characterId, characterName);
-        }, 30000 + Math.random() * 30000);
-    };
+            sendFollowUp();
+        }, delay);
+    }, [selectedContact, sendFollowUp]);
+
+    // Start follow-up timer when chat is activated
+    useEffect(() => {
+        if (selectedContact && chatActiveRef.current) {
+            // Start the follow-up timer immediately - characters will text you even if you don't message first!
+            console.log(`[PHONE] Chat activated with ${selectedContact.nickname} - starting follow-up system`);
+            scheduleNextFollowUp();
+        }
+    }, [selectedContact, scheduleNextFollowUp]);
 
     // AI Chat mutation
     const chatMutation = useMutation({
@@ -338,7 +589,7 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                 message,
                 context: chatHistory.slice(-6).map(m => `${m.from === 'tony' ? 'Tony' : selectedContact?.realName}: ${m.text}`).join('\n')
             });
-            return response.json();
+            return response; // apiRequest already returns parsed JSON
         },
         onSuccess: async (data) => {
             // Clear any follow-up timer since they're responding
@@ -371,12 +622,9 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
 
             setIsTyping(false);
 
-            // Start follow-up timer for Spider-Man (he spams if you don't reply in 30 seconds)
-            if (selectedContact?.id === 'peter') {
-                followUpTimerRef.current = setTimeout(() => {
-                    sendFollowUp(selectedContact?.id || '', selectedContact?.realName || '');
-                }, 30000 + Math.random() * 15000);
-            }
+            // Start follow-up timer for characters (they'll spam if you don't reply)
+            lastCharacterMessageRef.current = Date.now();
+            scheduleNextFollowUp();
 
             // Save to server
             try {
