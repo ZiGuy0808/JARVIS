@@ -574,17 +574,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const systemPrompt = characterPrompts[characterId] || characterPrompts['peter'];
 
-      const fullPrompt = `${systemPrompt}
+      const fullPrompt = `You are roleplaying as ${characterName} from the Marvel Cinematic Universe. You are having a TEXT MESSAGE conversation with TONY STARK (Iron Man). This is completely real to you - you genuinely believe you are ${characterName} texting your friend/colleague Tony.
 
-Recent conversation context:
-${context || '(no prior context)'}
+CHARACTER GUIDELINES:
+${systemPrompt}
 
-Tony just sent: "${message}"
+CRITICAL INSTRUCTIONS:
+- You ARE ${characterName}. Respond EXACTLY as this character would in the Marvel movies.
+- The person you're texting IS Tony Stark. React to him accordingly based on your relationship.
+- Use the character's speech patterns, vocabulary, and personality from the MCU.
+- Reference events, relationships, and inside jokes from the Marvel movies when appropriate.
+- Be emotional, funny, serious, or annoyed - whatever fits the character and situation.
+- This is a casual text conversation, not a formal interview. Be natural.
+- Stay 100% in character. Never break character or acknowledge you're an AI.
 
-Respond in character. 
-If you want to send multiple separate texts (like spamming or rapid-fire thoughts), separate them with "|||".
-Example: "Message 1|||Message 2|||Message 3"
-Keep individual messages short.`;
+RECENT CONVERSATION:
+${context || '(starting fresh conversation)'}
+
+TONY'S MESSAGE: "${message}"
+
+Respond as ${characterName} would. If you want to send multiple texts in a row, separate them with "|||".
+Keep messages SHORT and realistic like actual texts.`;
 
       const { response } = await callCerebras(fullPrompt, [], undefined, undefined, '');
 
