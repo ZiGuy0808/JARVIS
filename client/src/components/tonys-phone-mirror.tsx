@@ -446,21 +446,30 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
     }, [isOpen]);
 
     // Load chat history when contact selected - first try server, fallback to defaults
-    const { data: serverHistory } = useQuery({
+    const { data: serverHistory, isLoading: historyLoading, refetch: refetchHistory } = useQuery({
         queryKey: ['/api/phone/history', selectedContact?.id],
         queryFn: async () => {
             if (!selectedContact) return null;
+            console.log(`[PHONE] Fetching history for ${selectedContact.id}...`);
             const res = await fetch(`/api/phone/history/${selectedContact.id}`);
             const data = await res.json();
+            console.log(`[PHONE] Got ${data.history?.length || 0} messages from server`);
             return data.history?.length > 0 ? data.history : null;
         },
         enabled: !!selectedContact,
+        staleTime: 0, // Always refetch
+        refetchOnMount: 'always',
     });
 
     useEffect(() => {
         if (selectedContact) {
-            // Use server history if available, otherwise use defaults
-            setChatHistory(serverHistory || [...selectedContact.history]);
+            // Wait for query to complete before setting history
+            if (!historyLoading) {
+                // Use server history if available, otherwise use defaults
+                const historyToUse = serverHistory || [...selectedContact.history];
+                console.log(`[PHONE] Setting chat history: ${historyToUse.length} messages (from ${serverHistory ? 'server' : 'defaults'})`);
+                setChatHistory(historyToUse);
+            }
 
             // Activate chat system
             chatActiveRef.current = true;
@@ -479,7 +488,7 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                 followUpTimerRef.current = null;
             }
         }
-    }, [selectedContact, serverHistory]);
+    }, [selectedContact, serverHistory, historyLoading]);
 
     // Scroll to bottom when messages change
     useEffect(() => {
@@ -628,14 +637,24 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
 
             const messages = data.messages || [data.response];
 
-            // Realistic response timing:
-            // First few messages: 30 seconds to 5 minutes (like real texting)
-            // After conversation is going: 5-30 seconds
+            // Realistic response timing - character specific
+            // Spider-Man replies FAST (he's so eager!), others take longer
             let minDelay, maxDelay;
-            if (messageCountRef.current < 2) {
-                // First responses take longer - they might be busy!
+            const characterId = selectedContact?.id;
+
+            if (characterId === 'peter') {
+                // Spider-Man is ALWAYS eager to reply
+                if (messageCountRef.current < 2) {
+                    minDelay = 5000;   // 5 seconds minimum
+                    maxDelay = 20000;  // 20 seconds maximum
+                } else {
+                    minDelay = 2000;   // 2 seconds
+                    maxDelay = 10000;  // 10 seconds
+                }
+            } else if (messageCountRef.current < 2) {
+                // First responses take longer for other characters - they might be busy!
                 minDelay = 30000;  // 30 seconds minimum
-                maxDelay = 300000; // 5 minutes maximum
+                maxDelay = 180000; // 3 minutes maximum (reduced from 5)
             } else if (messageCountRef.current < 5) {
                 // Getting into the conversation
                 minDelay = 10000;  // 10 seconds
