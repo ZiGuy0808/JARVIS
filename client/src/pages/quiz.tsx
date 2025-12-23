@@ -329,26 +329,24 @@ export default function QuizPage() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className={`w-full p-4 rounded-lg border-2 transition-all text-left font-rajdhani ${
-                      selectedAnswer === index
+                    className={`w-full p-4 rounded-lg border-2 transition-all text-left font-rajdhani ${selectedAnswer === index
                         ? answerCorrect
                           ? 'border-green-500/80 bg-green-500/10'
                           : 'border-red-500/80 bg-red-500/10'
                         : 'border-primary/30 hover:border-primary/60 bg-primary/5'
-                    } ${showExplanation ? 'cursor-not-allowed' : 'cursor-pointer hover-elevate'}`}
+                      } ${showExplanation ? 'cursor-not-allowed' : 'cursor-pointer hover-elevate'}`}
                     data-testid={`button-answer-${index}`}
                     whileHover={!showExplanation ? { scale: 1.02 } : {}}
                     whileTap={!showExplanation ? { scale: 0.98 } : {}}
                   >
                     <div className="flex items-center gap-3">
                       <motion.div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                          selectedAnswer === index
+                        className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${selectedAnswer === index
                             ? answerCorrect
                               ? 'bg-green-500/30'
                               : 'bg-red-500/30'
                             : 'bg-primary/20'
-                        }`}
+                          }`}
                       >
                         {String.fromCharCode(65 + index)}
                       </motion.div>
@@ -557,6 +555,8 @@ export default function QuizPage() {
   }
 
   // ============= LOADING STATE =============
+  const isWebSearching = currentMode === 'endless' && questionNumber >= 3;
+
   return (
     <div className="w-full min-h-screen bg-gradient-to-b from-background to-background/80 flex items-center justify-center p-4">
       <motion.div
@@ -564,15 +564,74 @@ export default function QuizPage() {
         animate={{ opacity: 1, scale: 1 }}
         className="text-center"
       >
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-          className="text-6xl mb-4 inline-block"
-        >
-          ⚙️
-        </motion.div>
-        <p className="text-2xl font-orbitron mt-4">Initializing Quiz...</p>
-        <p className="text-muted-foreground mt-2">Jarvis is preparing your interrogation...</p>
+        {isWebSearching ? (
+          <>
+            {/* Web Search Animation */}
+            <div className="relative mb-6">
+              <motion.div
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.5, 1, 0.5]
+                }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="w-24 h-24 mx-auto rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center"
+                style={{ boxShadow: '0 0 40px rgba(6, 182, 212, 0.5)' }}
+              >
+                <span className="text-4xl">🌐</span>
+              </motion.div>
+              {/* Scanning lines */}
+              <motion.div
+                animate={{ top: ['10%', '90%', '10%'] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                className="absolute left-0 right-0 h-1 bg-cyan-400/50"
+                style={{ boxShadow: '0 0 10px rgba(6, 182, 212, 0.8)' }}
+              />
+            </div>
+            <motion.p
+              className="text-2xl font-orbitron mt-4 text-cyan-400"
+              animate={{ opacity: [1, 0.5, 1] }}
+              transition={{ duration: 1, repeat: Infinity }}
+            >
+              🔍 JARVIS SEARCHING THE WEB...
+            </motion.p>
+            <p className="text-muted-foreground mt-2">Finding an extremely hard question just for you...</p>
+            <motion.div
+              className="flex justify-center gap-1 mt-4"
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{ duration: 0.5, repeat: Infinity }}
+            >
+              {[0, 1, 2, 3, 4].map((i) => (
+                <motion.div
+                  key={i}
+                  className="w-2 h-8 bg-cyan-500 rounded"
+                  animate={{ scaleY: [0.3, 1, 0.3] }}
+                  transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1 }}
+                />
+              ))}
+            </motion.div>
+          </>
+        ) : (
+          <>
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+              className="text-6xl mb-4 inline-block"
+            >
+              ⚙️
+            </motion.div>
+            <p className="text-2xl font-orbitron mt-4">
+              {questionNumber <= 2 ? 'Warming Up...' :
+                questionNumber <= 5 ? 'Increasing Difficulty...' :
+                  questionNumber <= 8 ? 'Getting Serious...' :
+                    '💀 Preparing Nightmare Question...'}
+            </p>
+            <p className="text-muted-foreground mt-2">
+              {currentMode === 'endless' ?
+                `Question ${questionNumber} incoming...` :
+                'Jarvis is preparing your interrogation...'}
+            </p>
+          </>
+        )}
       </motion.div>
     </div>
   );

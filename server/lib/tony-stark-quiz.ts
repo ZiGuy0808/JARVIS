@@ -232,32 +232,57 @@ export function getRandomQuote(): string {
 
 export function getQuestionByDifficulty(currentQuestion: number): TonySurvivalQuestion {
   if (currentQuestion <= 0) return TONY_STARK_QUIZ_QUESTIONS[0];
-  
-  const index = (currentQuestion - 1) % TONY_STARK_QUIZ_QUESTIONS.length;
-  return TONY_STARK_QUIZ_QUESTIONS[index];
+
+  // Progressive difficulty based on question number
+  let targetDifficulty: number;
+  if (currentQuestion <= 2) {
+    targetDifficulty = 1; // Easy warmup
+  } else if (currentQuestion <= 4) {
+    targetDifficulty = 2; // Still warming up
+  } else if (currentQuestion <= 6) {
+    targetDifficulty = 3; // Getting tougher
+  } else if (currentQuestion <= 8) {
+    targetDifficulty = 5; // Moderate challenge
+  } else {
+    targetDifficulty = 7; // Hard questions
+  }
+
+  // Filter questions by target difficulty (within range)
+  const filteredQuestions = TONY_STARK_QUIZ_QUESTIONS.filter(
+    q => q.difficulty >= targetDifficulty - 1 && q.difficulty <= targetDifficulty + 1
+  );
+
+  if (filteredQuestions.length === 0) {
+    return TONY_STARK_QUIZ_QUESTIONS[currentQuestion % TONY_STARK_QUIZ_QUESTIONS.length];
+  }
+
+  // Pick a random question from the filtered pool
+  const randomIndex = Math.floor(Math.random() * filteredQuestions.length);
+  return filteredQuestions[randomIndex];
 }
 
 export function getRandomUnusedQuestion(usedIds: Set<number>): TonySurvivalQuestion {
   let question: TonySurvivalQuestion;
   let attempts = 0;
-  
+
   do {
     const randomIndex = Math.floor(Math.random() * TONY_STARK_QUIZ_QUESTIONS.length);
     question = TONY_STARK_QUIZ_QUESTIONS[randomIndex];
     attempts++;
   } while (usedIds.has(question.id) && attempts < 100);
-  
+
   return question;
 }
 
 export async function getExtremeWebSearchQuestion(usedIds: Set<number>, questionCount: number): Promise<TonySurvivalQuestion | null> {
-  // Trigger web-searched extreme questions after 8+ questions in endless mode
-  if (questionCount < 8) {
+  // Trigger web-searched questions starting from question 3 in endless mode!
+  if (questionCount < 3) {
     return null;
   }
 
-  // 70% chance to use web-searched extreme questions (higher frequency)
-  if (Math.random() > 0.7) {
+  // Progressive chance: starts at 40% and increases each question
+  const webSearchChance = Math.min(0.4 + (questionCount * 0.05), 0.85);
+  if (Math.random() > webSearchChance) {
     return null;
   }
 
@@ -281,7 +306,7 @@ export async function getExtremeWebSearchQuestion(usedIds: Set<number>, question
 
     // Get real web search result
     const searchResult = await searchWeb(randomQuery);
-    
+
     if (!searchResult || searchResult.includes("unable to search") || searchResult.length < 30) {
       return null;
     }

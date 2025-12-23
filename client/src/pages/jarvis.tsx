@@ -71,15 +71,15 @@ export default function JarvisPage() {
         console.error('Failed to fetch Stark Scan data:', error);
       }
     };
-    
+
     fetchScanData();
-    
+
     // Refresh scan data every 5 seconds to show changing stats
     const interval = setInterval(fetchScanData, 5000);
 
     // Initialize speech recognition with feature detection
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
+
     if (!SpeechRecognition) {
       setVoiceSupported(false);
       console.warn('Speech recognition not supported in this browser');
@@ -100,7 +100,7 @@ export default function JarvisPage() {
       recognitionRef.current.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         setIsRecording(false);
-        
+
         if (event.error === 'not-allowed' || event.error === 'permission-denied') {
           setVoiceSupported(false);
           toast({
@@ -141,9 +141,9 @@ export default function JarvisPage() {
     mutationFn: async (userMessage: string) => {
       console.log('[CHAT DEBUG] 1. mutationFn START - Sending message:', userMessage);
       setIsProcessing(true);
-      
+
       // Check if this might need a search
-      const mightNeedSearch = 
+      const mightNeedSearch =
         userMessage.toLowerCase().includes('quote') ||
         userMessage.toLowerCase().includes('movie') ||
         userMessage.toLowerCase().includes('scene') ||
@@ -151,17 +151,17 @@ export default function JarvisPage() {
         userMessage.toLowerCase().includes('what') ||
         userMessage.toLowerCase().includes('who') ||
         userMessage.toLowerCase().includes('which');
-      
+
       if (mightNeedSearch) {
         setIsSearching(true);
       }
-      
+
       try {
         // Fetch current Tony activity to provide location context
         const tonyRes = await fetch('/api/tony-activity');
         const tonyData = await tonyRes.json();
-        
-        const result = await apiRequest('POST', '/api/chat', { 
+
+        const result = await apiRequest('POST', '/api/chat', {
           message: userMessage,
           tonyLocation: tonyData
         });
@@ -178,7 +178,7 @@ export default function JarvisPage() {
       console.log('[CHAT DEBUG] 3. ===== onSuccess CALLED =====');
       console.log('[CHAT DEBUG] 3a. Data received:', data);
       setIsProcessing(false);
-      
+
       const assistantMessage: ChatMessage = {
         id: Date.now().toString(),
         role: 'assistant',
@@ -278,7 +278,7 @@ export default function JarvisPage() {
       }
       return updated;
     });
-    
+
     setTimeout(() => {
       console.log('[CHAT DEBUG] 10. Setting isSpeaking to false');
       setIsSpeaking(false);
@@ -331,7 +331,7 @@ export default function JarvisPage() {
         >
           <div className="absolute right-4 top-2 flex items-center gap-2">
             {battery && device.isMobile && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="flex items-center gap-1 px-3 py-1 bg-primary/10 rounded-full border border-primary/20"
@@ -388,6 +388,16 @@ export default function JarvisPage() {
               data-testid="button-start-quiz"
             >
               MCU Quiz
+            </motion.button>
+            {/* Suit Archive Button on Desktop */}
+            <motion.button
+              onClick={() => navigate('/suits')}
+              className="w-full px-4 py-2 bg-gradient-to-r from-red-500/20 to-yellow-500/20 border border-red-500/40 hover:from-red-500/30 hover:to-yellow-500/30 rounded-lg text-sm font-orbitron text-red-400 transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              data-testid="button-suit-archive"
+            >
+              🦾 SUIT ARCHIVE
             </motion.button>
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -471,7 +481,7 @@ export default function JarvisPage() {
 
             {/* Chat - Takes all remaining space */}
             <div className={`flex-1 lg:min-h-0 overflow-y-auto lg:overflow-hidden ${(showScan || showBlueprints) ? 'hidden lg:block' : ''}`}>
-              <ChatInterface 
+              <ChatInterface
                 messages={messages}
                 onTypingComplete={handleTypingComplete}
                 isSearching={isSearching}
@@ -485,9 +495,8 @@ export default function JarvisPage() {
                 {scanData && (
                   <motion.button
                     onClick={() => setShowScan(!showScan)}
-                    className={`flex-1 px-2 md:px-3 py-2 md:py-3 bg-primary/20 border border-primary/40 hover:bg-primary/30 rounded-lg text-[0.65rem] md:text-xs font-orbitron text-primary transition-colors active:scale-95 ${
-                      device.isIPhone ? 'min-h-11 md:min-h-12 touch-target' : 'min-h-10 md:min-h-11'
-                    }`}
+                    className={`flex-1 px-2 md:px-3 py-2 md:py-3 bg-primary/20 border border-primary/40 hover:bg-primary/30 rounded-lg text-[0.65rem] md:text-xs font-orbitron text-primary transition-colors active:scale-95 ${device.isIPhone ? 'min-h-11 md:min-h-12 touch-target' : 'min-h-10 md:min-h-11'
+                      }`}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     data-testid="button-toggle-stark-scan-mobile"
@@ -497,9 +506,8 @@ export default function JarvisPage() {
                 )}
                 <motion.button
                   onClick={() => setShowBlueprints(!showBlueprints)}
-                  className={`flex-1 px-2 md:px-3 py-2 md:py-3 bg-cyan-500/20 border border-cyan-500/40 hover:bg-cyan-500/30 rounded-lg text-[0.65rem] md:text-xs font-orbitron text-cyan-400 transition-colors active:scale-95 ${
-                    device.isIPhone ? 'min-h-11 md:min-h-12 touch-target' : 'min-h-10 md:min-h-11'
-                  }`}
+                  className={`flex-1 px-2 md:px-3 py-2 md:py-3 bg-cyan-500/20 border border-cyan-500/40 hover:bg-cyan-500/30 rounded-lg text-[0.65rem] md:text-xs font-orbitron text-cyan-400 transition-colors active:scale-95 ${device.isIPhone ? 'min-h-11 md:min-h-12 touch-target' : 'min-h-10 md:min-h-11'
+                    }`}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   data-testid="button-toggle-blueprints-mobile"
@@ -508,14 +516,23 @@ export default function JarvisPage() {
                 </motion.button>
                 <motion.button
                   onClick={() => navigate('/quiz')}
-                  className={`flex-1 px-2 md:px-3 py-2 md:py-3 bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30 rounded-lg text-[0.65rem] md:text-xs font-orbitron text-purple-400 transition-colors active:scale-95 ${
-                    device.isIPhone ? 'min-h-11 md:min-h-12 touch-target' : 'min-h-10 md:min-h-11'
-                  }`}
+                  className={`flex-1 px-2 md:px-3 py-2 md:py-3 bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30 rounded-lg text-[0.65rem] md:text-xs font-orbitron text-purple-400 transition-colors active:scale-95 ${device.isIPhone ? 'min-h-11 md:min-h-12 touch-target' : 'min-h-10 md:min-h-11'
+                    }`}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   data-testid="button-start-quiz-mobile"
                 >
                   Quiz
+                </motion.button>
+                <motion.button
+                  onClick={() => navigate('/suits')}
+                  className={`flex-1 px-2 md:px-3 py-2 md:py-3 bg-gradient-to-r from-red-500/20 to-yellow-500/20 border border-red-500/40 hover:from-red-500/30 hover:to-yellow-500/30 rounded-lg text-[0.65rem] md:text-xs font-orbitron text-red-400 transition-colors active:scale-95 ${device.isIPhone ? 'min-h-11 md:min-h-12 touch-target' : 'min-h-10 md:min-h-11'
+                    }`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  data-testid="button-suit-archive-mobile"
+                >
+                  Suits
                 </motion.button>
               </div>
               <div className="flex justify-center">
