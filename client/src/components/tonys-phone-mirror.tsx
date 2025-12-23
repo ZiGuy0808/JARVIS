@@ -269,6 +269,9 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
     const chatActiveRef = useRef<boolean>(false);
     const messageCountRef = useRef<number>(0); // Track message count for realistic timing
 
+    // Track latest messages for each contact (for the list view)
+    const [contactPreviews, setContactPreviews] = useState<Record<string, { text: string; time: string }>>({});
+
     // Helper to send character messages with typing simulation
     const sendCharacterMessage = useCallback(async (characterId: string, messages: string[]) => {
         setIsTyping(true);
@@ -302,6 +305,43 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
             }
         }
     }, [hasInitiatedChat, sendCharacterMessage]);
+
+    // Fetch latest messages for all contacts when phone opens (for preview)
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const fetchAllPreviews = async () => {
+            const previews: Record<string, { text: string; time: string }> = {};
+
+            for (const contact of CONTACTS) {
+                try {
+                    const res = await fetch(`/api/phone/history/${contact.id}`);
+                    const data = await res.json();
+                    if (data.history?.length > 0) {
+                        const lastMsg = data.history[data.history.length - 1];
+                        previews[contact.id] = { text: lastMsg.text, time: lastMsg.time };
+                    }
+                } catch (e) {
+                    // Fall back to default history
+                }
+            }
+
+            setContactPreviews(previews);
+        };
+
+        fetchAllPreviews();
+    }, [isOpen]);
+
+    // Update preview for current contact when chat history changes
+    useEffect(() => {
+        if (selectedContact && chatHistory.length > 0) {
+            const lastMsg = chatHistory[chatHistory.length - 1];
+            setContactPreviews(prev => ({
+                ...prev,
+                [selectedContact.id]: { text: lastMsg.text, time: lastMsg.time }
+            }));
+        }
+    }, [chatHistory, selectedContact]);
 
     // Clean up timers on unmount or contact change
     useEffect(() => {
@@ -774,11 +814,11 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                                             <div className="flex-1 min-w-0 text-left">
                                                 <p className="text-white font-semibold truncate">{contact.nickname}</p>
                                                 <p className="text-gray-400 text-sm truncate">
-                                                    {contact.history[contact.history.length - 1].text}
+                                                    {contactPreviews[contact.id]?.text || contact.history[contact.history.length - 1].text}
                                                 </p>
                                             </div>
                                             <div className="text-gray-500 text-xs flex-shrink-0">
-                                                {contact.history[contact.history.length - 1].time}
+                                                {contactPreviews[contact.id]?.time || contact.history[contact.history.length - 1].time}
                                             </div>
                                         </motion.button>
                                     ))}
