@@ -632,6 +632,115 @@ Keep messages SHORT and realistic like actual texts.`;
     }
   });
 
+  // Phone Mirror - Generate AI follow-up message when Tony doesn't reply
+  app.post("/api/phone/followup", async (req, res) => {
+    try {
+      const { characterId, characterName, context, timeSinceLastReply } = req.body;
+
+      if (!characterId || !characterName) {
+        return res.status(400).json({ error: 'Character ID and name are required' });
+      }
+
+      // Character-specific follow-up behavior
+      const followUpBehavior: Record<string, string> = {
+        peter: `You are Peter Parker texting Mr. Stark who hasn't replied in a while. You are:
+- Anxious and worried - did you do something wrong??
+- Sending multiple short worried texts
+- Overthinking why he's not responding
+- Making assumptions about what you might have done
+- Still excited and eager but now concerned
+- Use "Mr. Stark" always, lots of question marks and exclamation points
+- Sound worried but not angry - you idolize him`,
+
+        pepper: `You are Pepper Potts texting Tony who hasn't replied. You are:
+- Not panicking, just checking in
+- You know he gets distracted in the lab
+- Might mention Morgan, dinner plans, or meetings
+- Loving but with a hint of "I know you're ignoring me"
+- Could threaten to come down to the lab herself`,
+
+        happy: `You are Happy Hogan texting Tony who hasn't replied. You are:
+- Annoyed but loyal
+- Brief and to the point
+- Might complain about also having to deal with Peter
+- Use "Boss" when addressing him
+- Grumpy but caring`,
+
+        fury: `You are Nick Fury texting Stark who hasn't replied. You are:
+- Impatient and commanding
+- This is unacceptable behavior
+- Might threaten consequences
+- Very short, stern messages
+- Reference that you know he's reading these`,
+
+        rhodey: `You are Rhodey texting Tony who hasn't replied. You are:
+- Concerned as his best friend
+- Might use humor or threaten to share MIT stories
+- Casual and friendly but checking in
+- Reference your long friendship`,
+
+        natasha: `You are Natasha texting Tony who hasn't replied. You are:
+- Cool and unbothered
+- Might send just "..." or a brief comment
+- Could mention you have eyes everywhere
+- Dry and cryptic`,
+
+        steve: `You are Steve Rogers texting Tony who hasn't replied. You are:
+- Patient but concerned
+- Formal in your language
+- Might mention duty or responsibility
+- Not pushy but persistent`,
+
+        bruce: `You are Bruce Banner texting Tony who hasn't replied. You are:
+- Anxious but trying not to be
+- Might mention lab work or calculations
+- Gentle reminders, not pushy
+- Could mention needing to stay calm ("you know how the other guy gets")`
+      };
+
+      const behavior = followUpBehavior[characterId] || followUpBehavior['peter'];
+      const timeDescription = timeSinceLastReply > 120 ? "several minutes" : timeSinceLastReply > 60 ? "about a minute" : "a little while";
+
+      const fullPrompt = `You are ${characterName} from the Marvel Cinematic Universe. Tony Stark hasn't replied to your texts for ${timeDescription}. Generate a natural follow-up message or messages that ${characterName} would send.
+
+CHARACTER BEHAVIOR:
+${behavior}
+
+RECENT CONVERSATION CONTEXT:
+${context || '(You were having a conversation but Tony stopped replying)'}
+
+INSTRUCTIONS:
+- Generate 1-3 short follow-up messages that fit this character's personality
+- These should feel like natural "checking in" or "are you there?" type messages
+- Reference the conversation context if relevant
+- Stay completely in character
+- Separate multiple messages with "|||"
+- Keep each message SHORT like real texts
+- Sound natural and conversational, not robotic
+
+Generate the follow-up message(s) now:`;
+
+      const { response } = await callCerebras(fullPrompt, [], undefined, undefined, '');
+
+      // Parse response for multiple messages
+      const messages = response.split('|||').map(m => m.trim()).filter(m => m.length > 0);
+
+      // Save to chat history
+      const existingHistory = phoneChatHistory[characterId] || [];
+      const newMessages = messages.map(text => ({
+        from: characterId,
+        text,
+        time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      }));
+      phoneChatHistory[characterId] = [...existingHistory, ...newMessages];
+
+      res.json({ messages });
+    } catch (error) {
+      console.error('Phone followup error:', error);
+      res.status(500).json({ error: 'Failed to generate follow-up' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

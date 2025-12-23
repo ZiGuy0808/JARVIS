@@ -201,66 +201,6 @@ const CONTACTS = [
     }
 ];
 
-// Character-specific spam messages when ignored
-const SPAM_MESSAGES: Record<string, string[]> = {
-    peter: [
-        "Mr. Stark???",
-        "Hello?????",
-        "Are you there??",
-        "Mr. Stark are you mad at me??",
-        "Did I do something wrong??",
-        "Please respond!!",
-        "Is this about the building thing again?",
-        "I said I was sorry about the ferry!!",
-        "Mr. STAAARRRKKK!!!",
-        "I'm gonna assume you're busy saving the world",
-        "Or eating a cheeseburger",
-        "Can you at least send an emoji so I know you're alive??",
-        "👀",
-        "Mr. Stark I can see you read this!!"
-    ],
-    happy: [
-        "Boss?",
-        "Tony, I need an answer here",
-        "The kid is driving me crazy",
-        "TONY",
-        "I know you're reading these"
-    ],
-    fury: [
-        "Stark.",
-        "I know you're ignoring me.",
-        "Don't make me come find you.",
-        "This is a direct order.",
-        "You have 5 minutes to respond."
-    ],
-    rhodey: [
-        "Tony?",
-        "You there buddy?",
-        "Don't leave me hanging man",
-        "I know you saw this",
-        "MIT story goes public in 5..."
-    ],
-    pepper: [
-        "Tony?",
-        "I know you're in the lab.",
-        "Morgan asked about you.",
-        "Dinner is getting cold."
-    ],
-    steve: [
-        "Tony, please respond.",
-        "This is important.",
-        "I'll wait."
-    ],
-    natasha: [
-        "..."
-    ],
-    bruce: [
-        "Tony?",
-        "Just wanted to make sure you got my data.",
-        "No rush... just checking in."
-    ]
-};
-
 // Starter messages when you open the chat (character initiates)
 const OPENER_PROMPTS: Record<string, string[]> = {
     peter: [
@@ -453,7 +393,7 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [chatHistory, isTyping, isWaitingToReply]);
 
-    // Universal follow-up spam function - works for all characters based on spamLevel
+    // Universal follow-up function - generates AI-powered contextual messages
     const sendFollowUp = useCallback(async () => {
         if (!selectedContact || !chatActiveRef.current) return;
 
@@ -462,44 +402,36 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
 
         // Check if Tony has replied recently
         const timeSinceLastTonyMessage = Date.now() - lastTonyMessageRef.current;
-        const timeSinceLastCharacterMessage = Date.now() - lastCharacterMessageRef.current;
 
         // Different spam thresholds based on character
         let spamThreshold = 60000; // 1 minute default
-        let maxSpamMessages = 1;
         let spamChance = 0.5;
 
         switch (spamLevel) {
             case 'extreme': // Peter - spams like crazy
                 spamThreshold = 10000; // 10 seconds!
-                maxSpamMessages = 4;
                 spamChance = 0.9;
                 break;
             case 'demanding': // Fury - demands responses
                 spamThreshold = 25000;
-                maxSpamMessages = 2;
                 spamChance = 0.7;
                 break;
             case 'medium': // Happy, Rhodey
                 spamThreshold = 40000;
-                maxSpamMessages = 2;
                 spamChance = 0.5;
                 break;
             case 'low': // Pepper, Steve, Bruce
                 spamThreshold = 90000;
-                maxSpamMessages = 1;
                 spamChance = 0.3;
                 break;
             case 'none': // Natasha - very rare
                 spamThreshold = 180000;
-                maxSpamMessages = 1;
                 spamChance = 0.1;
                 break;
         }
 
         // Don't spam if Tony replied recently
         if (timeSinceLastTonyMessage < spamThreshold) {
-            // Reschedule for later
             scheduleNextFollowUp();
             return;
         }
@@ -510,42 +442,44 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
             return;
         }
 
-        console.log(`[PHONE] ${selectedContact.nickname} is getting impatient (spamLevel: ${spamLevel})...`);
+        console.log(`[PHONE] ${selectedContact.nickname} is checking in (AI-generated)...`);
 
-        const spamMessages = SPAM_MESSAGES[characterId] || ["Hey?"];
+        try {
+            // Generate AI follow-up based on conversation context
+            const context = chatHistory.slice(-6).map(m =>
+                `${m.from === 'tony' ? 'Tony' : selectedContact.realName}: ${m.text}`
+            ).join('\n');
 
-        // Pick random messages
-        const numMessages = 1 + Math.floor(Math.random() * maxSpamMessages);
-        const selectedMessages: string[] = [];
-        const usedIndices = new Set<number>();
+            const timeSinceLastReply = Math.round((Date.now() - lastTonyMessageRef.current) / 1000);
 
-        for (let i = 0; i < numMessages && usedIndices.size < spamMessages.length; i++) {
-            let randomIdx = Math.floor(Math.random() * spamMessages.length);
-            while (usedIndices.has(randomIdx)) {
-                randomIdx = Math.floor(Math.random() * spamMessages.length);
+            const response = await apiRequest('POST', '/api/phone/followup', {
+                characterId,
+                characterName: selectedContact.realName,
+                context,
+                timeSinceLastReply
+            });
+
+            const messages = response.messages || [];
+
+            // Add messages to chat with realistic delays
+            for (const text of messages) {
+                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+                setChatHistory(prev => [...prev, {
+                    from: characterId,
+                    text: text,
+                    time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                }]);
             }
-            usedIndices.add(randomIdx);
-            selectedMessages.push(spamMessages[randomIdx]);
+
+            lastCharacterMessageRef.current = Date.now();
+            spamCountRef.current++;
+        } catch (error) {
+            console.error('[PHONE] Failed to generate follow-up:', error);
         }
-
-        setIsTyping(true);
-
-        for (const text of selectedMessages) {
-            await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 800));
-            setChatHistory(prev => [...prev, {
-                from: characterId,
-                text: text,
-                time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-            }]);
-        }
-
-        setIsTyping(false);
-        lastCharacterMessageRef.current = Date.now();
-        spamCountRef.current++;
 
         // Schedule another follow-up
         scheduleNextFollowUp();
-    }, [selectedContact]);
+    }, [selectedContact, chatHistory]);
 
     // Schedule the next follow-up based on character
     const scheduleNextFollowUp = useCallback(() => {
