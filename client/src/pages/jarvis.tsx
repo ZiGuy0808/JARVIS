@@ -288,9 +288,67 @@ export default function JarvisPage() {
     setPhoneNotifications(prev => [...prev, n].slice(-3));
   }, []);
 
+  // Track message frequency for dynamic Jarvis reactions
+  const messageSpamCountsRef = useRef<Record<string, { count: number, lastTime: number }>>({});
+
+  const handleOpenPhone = () => {
+    setShowPhone(true);
+    setUnreadCount(0);
+    // Reset spam counts when user checks the phone
+    messageSpamCountsRef.current = {};
+  };
+
   // Called by TonysPhoneMirror for background messages
   const handleExternalPhoneAlert = useCallback((id: string, name: string, message: string) => {
-    // 1. Show Bubble
+    // 1. Update Spam Tracking
+    const now = Date.now();
+    const history = messageSpamCountsRef.current[id] || { count: 0, lastTime: 0 };
+
+    // Reset count if > 45 seconds passed since last message from this person
+    if (now - history.lastTime > 45000) {
+      history.count = 0;
+    }
+
+    history.count++;
+    history.lastTime = now;
+    messageSpamCountsRef.current[id] = history;
+
+    // 2. Generate Dynamic Jarvis Comment
+    let comment = `Sir, incoming message from ${name}.`;
+    const count = history.count;
+
+    // Dynamic Reactions based on Character & Count
+    if (count > 1) {
+      // High Frequency / Spam Logic
+      if (count >= 5) {
+        if (id === 'peter') comment = `Sir, that is Mr. Parker's ${count}th message. He appears to be panicking.`;
+        else if (id === 'pepper') comment = `Sir, Miss Potts has messaged ${count} times. I strongly suggest you respond immediately.`;
+        else if (id === 'fury') comment = `Director Fury is up to message ${count}. This looks urgent, Sir.`;
+        else if (id === 'happy') comment = `Happy has sent ${count} messages. Likely a badge issue.`;
+        else comment = `Sir, that is message number ${count} from ${name}. Quite persistent.`;
+      }
+      else if (count >= 3) {
+        if (id === 'peter') comment = `Another message from the Spider-ling.`;
+        else if (id === 'pepper') comment = `Miss Potts is following up, Sir.`;
+        else comment = `You have another update from ${name}.`;
+      }
+      else {
+        // Count = 2
+        comment = `And another one from ${name}.`;
+      }
+    } else {
+      // Single Message (Random variations)
+      const intros = [
+        `Sir, incoming message from ${name}.`,
+        `New communication from ${name}.`,
+        `${name} just messaged you.`,
+        `Text alert: ${name}.`,
+        `Incoming transmission: ${name}.`
+      ];
+      comment = intros[Math.floor(Math.random() * intros.length)];
+    }
+
+    // 3. Show Bubble UI
     const newNotification: Notification = {
       id: Date.now().toString(),
       characterId: id,
@@ -299,25 +357,19 @@ export default function JarvisPage() {
     };
     setPhoneNotifications(prev => [...prev, newNotification].slice(-3));
 
-    // 2. Jarvis Voice
-    const comment = `Sir, incoming message from ${name}.`;
+    // 4. Trigger Jarvis Voice
     handlePhoneNotification(id, name, comment);
 
-    // 3. Auto dismiss
+    // 5. Auto dismiss bubble
     setTimeout(() => {
       setPhoneNotifications(prev => prev.filter(n => n.id !== newNotification.id));
     }, 8000);
 
-    // 4. Increment badge if phone is closed
+    // 6. Increment badge if phone is closed
     if (!showPhone) {
       setUnreadCount(prev => prev + 1);
     }
   }, [handlePhoneNotification, showPhone]);
-
-  const handleOpenPhone = () => {
-    setShowPhone(true);
-    setUnreadCount(0);
-  };
 
   const handleTypingComplete = useCallback(() => {
     console.log('[CHAT DEBUG] 8. handleTypingComplete called');
