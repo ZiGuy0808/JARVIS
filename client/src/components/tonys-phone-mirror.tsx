@@ -618,18 +618,30 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
         }
     }, [selectedContact, scheduleNextFollowUp]);
 
-    // AI Chat mutation
+    // AI Chat mutation - captures contact ID to prevent cross-chat contamination
     const chatMutation = useMutation({
         mutationFn: async (message: string) => {
+            // Capture the contact ID at mutation START to validate later
+            const originalContactId = selectedContact?.id;
+            const originalContactName = selectedContact?.realName;
+
             const response = await apiRequest('POST', '/api/phone/chat', {
-                characterId: selectedContact?.id,
-                characterName: selectedContact?.realName,
+                characterId: originalContactId,
+                characterName: originalContactName,
                 message,
-                context: chatHistory.slice(-6).map(m => `${m.from === 'tony' ? 'Tony' : selectedContact?.realName}: ${m.text}`).join('\n')
+                context: chatHistory.slice(-6).map(m => `${m.from === 'tony' ? 'Tony' : originalContactName}: ${m.text}`).join('\n')
             });
-            return response; // apiRequest already returns parsed JSON
+
+            // Return the response WITH the original contact ID for validation
+            return { ...response, _originalContactId: originalContactId };
         },
         onSuccess: async (data) => {
+            // CRITICAL: Validate we're still on the same contact!
+            if (data._originalContactId !== selectedContact?.id) {
+                console.log(`[PHONE] Response discarded - switched from ${data._originalContactId} to ${selectedContact?.id}`);
+                return; // Discard response - user switched contacts
+            }
+
             // Clear any follow-up timer since they're responding
             if (followUpTimerRef.current) {
                 clearTimeout(followUpTimerRef.current);
@@ -668,13 +680,28 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
             const replyDelay = minDelay + Math.random() * (maxDelay - minDelay);
             console.log(`[PHONE] ${selectedContact?.nickname} will reply in ${Math.round(replyDelay / 1000)}s (message #${messageCountRef.current + 1})...`);
 
-            // No typing indicator - just wait silently like real texting
-            await new Promise(resolve => setTimeout(resolve, replyDelay));
+            // Wait most of the delay before showing typing indicator
+            const typingShowTime = Math.max(1500, replyDelay - 2000); // Show typing 2 seconds before message
+            await new Promise(resolve => setTimeout(resolve, typingShowTime));
+
+            // Show typing indicator
+            setIsTyping(true);
+
+            // Wait the remaining time with typing shown
+            await new Promise(resolve => setTimeout(resolve, replyDelay - typingShowTime));
 
             // Add messages with small delays between them (like real typing)
             for (const text of messages) {
-                // Small delay between multiple messages (1-4 seconds)
-                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 3000));
+                // Validate still on same contact before each message
+                if (data._originalContactId !== selectedContact?.id) {
+                    setIsTyping(false);
+                    return;
+                }
+
+                // Show typing briefly before each message
+                setIsTyping(true);
+                await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1500));
+                setIsTyping(false);
 
                 setChatHistory(prev => [...prev, {
                     from: selectedContact?.id || 'unknown',
@@ -684,6 +711,8 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
 
                 messageCountRef.current++;
             }
+
+            setIsTyping(false);
 
             // Start follow-up timer for characters (they'll spam if you don't reply)
             lastCharacterMessageRef.current = Date.now();
@@ -847,6 +876,34 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                                             </div>
                                         </motion.div>
                                     ))}
+
+                                    {/* Typing Indicator */}
+                                    {isTyping && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="flex justify-start"
+                                        >
+                                            <div className="bg-gray-800 px-4 py-2.5 rounded-2xl rounded-bl-md flex items-center gap-1">
+                                                <motion.span
+                                                    animate={{ opacity: [0.4, 1, 0.4] }}
+                                                    transition={{ repeat: Infinity, duration: 1, delay: 0 }}
+                                                    className="w-2 h-2 bg-gray-400 rounded-full"
+                                                />
+                                                <motion.span
+                                                    animate={{ opacity: [0.4, 1, 0.4] }}
+                                                    transition={{ repeat: Infinity, duration: 1, delay: 0.2 }}
+                                                    className="w-2 h-2 bg-gray-400 rounded-full"
+                                                />
+                                                <motion.span
+                                                    animate={{ opacity: [0.4, 1, 0.4] }}
+                                                    transition={{ repeat: Infinity, duration: 1, delay: 0.4 }}
+                                                    className="w-2 h-2 bg-gray-400 rounded-full"
+                                                />
+                                            </div>
+                                        </motion.div>
+                                    )}
+
                                     <div ref={messagesEndRef} />
                                 </div>
 
