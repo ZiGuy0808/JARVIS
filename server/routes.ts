@@ -29,7 +29,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if user wants to move Tony to a new location
       const locationRequest = parseLocationFromMessage(message);
       let newLocation: Location | null = null;
-      
+
       if (locationRequest) {
         currentTonyLocationOverride = locationRequest.location;
         newLocation = locationRequest.location;
@@ -37,7 +37,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Improved search detection - check if query needs web lookup
-      const needsSearch = 
+      const needsSearch =
         message.toLowerCase().includes('quote') ||
         message.toLowerCase().includes('movie') ||
         message.toLowerCase().includes('scene') ||
@@ -68,7 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
 
       // Add search context if available
-      const enhancedMessage = searchContext 
+      const enhancedMessage = searchContext
         ? `${message}\n\nContext from web search: ${searchContext}`
         : message;
 
@@ -107,7 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ response, isEasterEgg, didSearch, newLocation });
     } catch (error) {
       console.error('Chat error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Failed to process message',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -141,7 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/tony-activity", async (_req, res) => {
     try {
       let activity = getTonyActivity();
-      
+
       // Use override location if set (from chat requests to move Tony)
       if (currentTonyLocationOverride) {
         activity = {
@@ -150,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           coordinates: currentTonyLocationOverride.coordinates
         };
       }
-      
+
       res.json(activity);
     } catch (error) {
       console.error('Tony activity error:', error);
@@ -162,7 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tony-location", async (req, res) => {
     try {
       const { location } = req.body;
-      
+
       if (!location || !location.coordinates) {
         return res.status(400).json({ error: 'Invalid location data' });
       }
@@ -308,7 +308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Quiz session tracking - with auto-cleanup after 30 minutes
   const sessionQuestions = new Map<string, { questions: Set<number>; timestamp: number }>();
-  
+
   // Cleanup old sessions every 5 minutes
   setInterval(() => {
     const now = Date.now();
@@ -327,7 +327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const mode = (req.query.mode as string) || 'regular';
       const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       sessionQuestions.set(sessionId, { questions: new Set(), timestamp: Date.now() });
-      
+
       res.json({ sessionId, mode });
     } catch (error) {
       console.error('Tony quiz start error:', error);
@@ -346,31 +346,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!sessionQuestions.has(sessionId)) {
         sessionQuestions.set(sessionId, { questions: new Set(), timestamp: Date.now() });
       }
-      
+
       const sessionData = sessionQuestions.get(sessionId)!;
       sessionData.timestamp = Date.now(); // Update timestamp for cleanup
       const usedIds = sessionData.questions;
-      
+
       let question;
       if (mode === 'endless') {
-        // For endless mode, always try to get extreme AI questions
-        const { getExtremeWebSearchQuestion } = await import('./lib/tony-stark-quiz');
-        const extremeQuestion = await getExtremeWebSearchQuestion(usedIds, questionNumber);
+        // For endless mode, always try to get extreme AI questions (Difficulty 8-10)
+        const { getAiGeneratedQuestion } = await import('./lib/tony-stark-quiz');
+        const difficulty = Math.min(10, 7 + Math.floor(questionNumber / 3));
+        const extremeQuestion = await getAiGeneratedQuestion(usedIds, difficulty);
+
         if (extremeQuestion) {
           question = extremeQuestion;
         } else {
           question = getRandomUnusedQuestion(usedIds);
         }
       } else {
-        // For regular mode, use progressive difficulty (questions 1-10)
-        question = getQuestionByDifficulty(questionNumber);
+        // For regular mode, ALSO use AI questions but with simpler difficulty
+        const { getAiGeneratedQuestion } = await import('./lib/tony-stark-quiz');
+
+        // Progressive difficulty: Q1-3=Easy(2), Q4-6=Medium(4), Q7-8=Hard(6), Q9-10=Extreme(8)
+        let difficulty = 2;
+        if (questionNumber >= 4) difficulty = 4;
+        if (questionNumber >= 7) difficulty = 6;
+        if (questionNumber >= 9) difficulty = 8;
+
+        const aiQuestion = await getAiGeneratedQuestion(usedIds, difficulty);
+
+        if (aiQuestion) {
+          question = aiQuestion;
+        } else {
+          question = getQuestionByDifficulty(questionNumber);
+        }
       }
-      
+
       if (question) {
         usedIds.add(question.id);
         sessionQuestions.set(sessionId, sessionData);
       }
-      
+
       // For endless mode, emphasize the extreme difficulty
       let difficultyIndicator = `Difficulty: ${question.difficulty}/10`;
       if (mode === 'endless') {
@@ -380,8 +396,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           difficultyIndicator = '🔥 ENDLESSLY HARD - PREPARE YOURSELF 🔥';
         }
       }
-      
-      res.json({ 
+
+      res.json({
         question,
         questionNumber,
         jarvisQuote: getRandomQuote(),
@@ -398,14 +414,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tony-quiz/check", (req, res) => {
     try {
       const { answer, correct } = req.body;
-      
+
       if (answer === correct) {
-        res.json({ 
+        res.json({
           correct: true,
           jarvisResponse: getRandomEncouragement()
         });
       } else {
-        res.json({ 
+        res.json({
           correct: false,
           jarvisResponse: getRandomRoast(),
           gameOver: true
@@ -428,7 +444,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use process.cwd() to get project root directory
       const imagePath = path.join(process.cwd(), 'attached_assets/generated_images', filename);
-      
+
       // Check if file exists
       if (!fs.existsSync(imagePath)) {
         console.log(`Image not found: ${imagePath}`);
@@ -438,7 +454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set appropriate headers
       res.setHeader('Content-Type', 'image/png');
       res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
-      
+
       // Send the file
       res.sendFile(imagePath);
     } catch (error) {

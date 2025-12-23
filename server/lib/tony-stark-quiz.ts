@@ -274,15 +274,14 @@ export function getRandomUnusedQuestion(usedIds: Set<number>): TonySurvivalQuest
   return question;
 }
 
-export async function getExtremeWebSearchQuestion(usedIds: Set<number>, questionCount: number): Promise<TonySurvivalQuestion | null> {
-  // Trigger web-searched questions starting from question 3 in endless mode!
-  if (questionCount < 3) {
-    return null;
-  }
+export async function getAiGeneratedQuestion(usedIds: Set<number>, targetDifficulty: number): Promise<TonySurvivalQuestion | null> {
+  // Chance to use AI generation (higher chance for higher difficulties)
+  // Difficulty 1-10.
+  // Diff 1: 20% chance
+  // Diff 10: 90% chance
+  const aiChance = 0.1 + (targetDifficulty * 0.08);
 
-  // Progressive chance: starts at 40% and increases each question
-  const webSearchChance = Math.min(0.4 + (questionCount * 0.05), 0.85);
-  if (Math.random() > webSearchChance) {
+  if (Math.random() > aiChance) {
     return null;
   }
 
@@ -290,17 +289,36 @@ export async function getExtremeWebSearchQuestion(usedIds: Set<number>, question
     const { searchWeb } = await import('./search');
     const { callCerebras } = await import('./cerebras');
 
-    // Search queries for obscure MCU facts
-    const searchQueries = [
-      "Tony Stark suit specifications Arc Reactor power output",
-      "Iron Man Mark suit Easter eggs MCU details",
-      "Tony Stark PTSD character moments MCU films",
-      "Iron Man technology Vibranium nanotechnology evolution",
-      "Tony Stark deleted scenes cut footage MCU",
-      "Avengers endgame Iron Man sacrifice Arc Reactor details",
-      "Mark LXXXV suit capabilities specifications endgame",
-      "Tony Stark cameo appearances MCU timeline"
-    ];
+    // Search queries adapted to difficulty
+    let searchQueries: string[] = [];
+
+    if (targetDifficulty <= 3) {
+      searchQueries = [
+        "Iron Man basic movie trivia facts",
+        "Tony Stark main character moments MCU",
+        "Avengers key plot points Iron Man",
+        "Pepper Potts and Tony Stark relationship facts",
+        "JARVIS AI basic facts MCU"
+      ];
+    } else if (targetDifficulty <= 7) {
+      searchQueries = [
+        "Iron Man suit capabilities specific details",
+        "Tony Stark obscure quotes MCU",
+        "MCU detailed timeline Iron Man events",
+        "Arc Reactor technical details MCU canon",
+        "Tony Stark inventions list MCU"
+      ];
+    } else {
+      searchQueries = [
+        "Tony Stark suit specifications Arc Reactor power output",
+        "Iron Man Mark suit Easter eggs MCU details",
+        "Tony Stark PTSD character moments MCU films",
+        "Iron Man technology Vibranium nanotechnology evolution",
+        "Tony Stark deleted scenes cut footage MCU",
+        "Avengers endgame Iron Man sacrifice Arc Reactor details",
+        "Mark LXXXV suit capabilities specifications endgame"
+      ];
+    }
 
     const randomQuery = searchQueries[Math.floor(Math.random() * searchQueries.length)];
 
@@ -311,22 +329,23 @@ export async function getExtremeWebSearchQuestion(usedIds: Set<number>, question
       return null;
     }
 
-    // Use Cerebras to convert the real fact into an EXTREMELY difficult quiz question
+    // Use Cerebras to convert the real fact into a quiz question
     const transformPrompt = `You found this real MCU fact during research: "${searchResult}"
 
-Convert this into an EXTREMELY difficult multiple choice quiz question. Format EXACTLY as:
-QUESTION: [Create a specific, challenging question about this MCU fact - must be factually grounded]
-CORRECT: [The correct answer - MUST be directly from or logically derived from the fact above]
-WRONG1: [Plausible wrong answer similar to correct but factually incorrect]
-WRONG2: [Another plausible wrong answer that could confuse MCU fans]
-WRONG3: [A third wrong answer with similar theme but incorrect]
+Convert this into a multiple choice quiz question with DIFFICULTY LEVEL ${targetDifficulty}/10.
+
+Format EXACTLY as:
+QUESTION: [The question]
+CORRECT: [The correct answer]
+WRONG1: [Wrong answer 1]
+WRONG2: [Wrong answer 2]
+WRONG3: [Wrong answer 3]
 
 Requirements:
-- Question must be EXTREMELY hard - only hardcore MCU fans would know
+- Difficulty ${targetDifficulty}/10: ${targetDifficulty < 4 ? 'Easy/Common Knowledge' : targetDifficulty < 8 ? 'Detailed Fan Knowledge' : 'Extreme/Obscure Trivia'}
 - CORRECT answer MUST be based on the real MCU fact provided
-- All options must be plausible and sound factual
-- Include specific numbers, suit marks, or technical details when possible
-- Make it impossible to guess - requires actual MCU knowledge`;
+- All options must be plausible
+- Include specific details appropriate for the difficulty level`;
 
     const { response } = await callCerebras(transformPrompt, [], undefined, undefined, '');
 
@@ -367,19 +386,20 @@ Requirements:
 
     if (question && correctAnswer && wrong1 && wrong2 && wrong3) {
       const wrongAnswers = [wrong1, wrong2, wrong3];
-
-      // Shuffle answers and track correct index
       const allAnswers = [correctAnswer, ...wrongAnswers];
       const shuffled = allAnswers.sort(() => Math.random() - 0.5);
       const correctIndex = shuffled.indexOf(correctAnswer);
 
+      // Unique ID based on timestamp + random to avoid collision with static IDs
+      const newId = 20000 + Math.floor(Math.random() * 10000);
+
       return {
-        id: 10000 + questionCount,
-        question: `🔥💀 WEB-SEARCHED EXTREME: ${question}`,
+        id: newId,
+        question: `🔥 AI SEARCH (${targetDifficulty}/10): ${question}`,
         options: shuffled,
         correct: correctIndex,
-        difficulty: 9,
-        category: "web-extreme",
+        difficulty: targetDifficulty,
+        category: "web-ai",
         explanation: `Based on MCU research: ${correctAnswer}`
       };
     }
