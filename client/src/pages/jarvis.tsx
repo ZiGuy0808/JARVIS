@@ -63,6 +63,7 @@ export default function JarvisPage() {
   const device = useDeviceDetection();
   const battery = useBatteryStatus();
   const [phoneNotifications, setPhoneNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     // Fetch initial Stark Scan data
@@ -306,7 +307,17 @@ export default function JarvisPage() {
     setTimeout(() => {
       setPhoneNotifications(prev => prev.filter(n => n.id !== newNotification.id));
     }, 8000);
-  }, [handlePhoneNotification]);
+
+    // 4. Increment badge if phone is closed
+    if (!showPhone) {
+      setUnreadCount(prev => prev + 1);
+    }
+  }, [handlePhoneNotification, showPhone]);
+
+  const handleOpenPhone = () => {
+    setShowPhone(true);
+    setUnreadCount(0);
+  };
 
   const handleTypingComplete = useCallback(() => {
     console.log('[CHAT DEBUG] 8. handleTypingComplete called');
@@ -441,14 +452,19 @@ export default function JarvisPage() {
 
             {/* Phone Mirror Button on Desktop */}
             <motion.button
-              onClick={() => setShowPhone(true)}
-              className="w-full px-4 py-2 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 hover:from-cyan-500/30 hover:to-blue-500/30 rounded-lg text-sm font-orbitron text-cyan-400 transition-colors flex items-center justify-center gap-2"
+              onClick={handleOpenPhone}
+              className="relative w-full px-4 py-2 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 hover:from-cyan-500/30 hover:to-blue-500/30 rounded-lg text-sm font-orbitron text-cyan-400 transition-colors flex items-center justify-center gap-2"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               data-testid="button-phone-mirror"
             >
               <Smartphone className="w-4 h-4" />
               Tony's Phone
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-lg animate-pulse">
+                  {unreadCount}
+                </span>
+              )}
             </motion.button>
 
             <motion.div
@@ -577,14 +593,19 @@ export default function JarvisPage() {
                   Quiz
                 </motion.button>
                 <motion.button
-                  onClick={() => setShowPhone(true)}
-                  className={`flex-1 px-2 md:px-3 py-2 md:py-3 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 hover:from-cyan-500/30 hover:to-blue-500/30 rounded-lg text-[0.65rem] md:text-xs font-orbitron text-cyan-400 transition-colors active:scale-95 ${device.isIPhone ? 'min-h-11 md:min-h-12 touch-target' : 'min-h-10 md:min-h-11'
+                  onClick={handleOpenPhone}
+                  className={`relative flex-1 px-2 md:px-3 py-2 md:py-3 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 hover:from-cyan-500/30 hover:to-blue-500/30 rounded-lg text-[0.65rem] md:text-xs font-orbitron text-cyan-400 transition-colors active:scale-95 ${device.isIPhone ? 'min-h-11 md:min-h-12 touch-target' : 'min-h-10 md:min-h-11'
                     }`}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   data-testid="button-phone-mirror-mobile"
                 >
                   Phone
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white shadow-lg animate-pulse">
+                      {unreadCount}
+                    </span>
+                  )}
                 </motion.button>
               </div>
               <div className="flex justify-center">
