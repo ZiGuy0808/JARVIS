@@ -55,19 +55,19 @@ export function DashboardWidgets() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <Card className="backdrop-blur-lg bg-card/40 border-primary/20 p-4" data-testid="widget-weather">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Cloud className="w-6 h-6 text-primary" />
+        <Card className="backdrop-blur-lg bg-card/40 border-primary/20 p-3 md:p-4" data-testid="widget-weather">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
+              <Cloud className="w-5 h-5 md:w-6 md:h-6 text-primary" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-xs uppercase tracking-wider text-muted-foreground font-rajdhani">Weather</p>
               {weather ? (
                 <>
-                  <p className="text-2xl font-orbitron font-bold text-foreground" data-testid="text-temperature">
+                  <p className="text-xl md:text-2xl font-orbitron font-bold text-foreground truncate" data-testid="text-temperature">
                     {Math.round(weather.temp)}°
                   </p>
-                  <p className="text-xs text-muted-foreground">{weather.condition}</p>
+                  <p className="text-xs text-muted-foreground truncate">{weather.condition}</p>
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">Loading...</p>
@@ -88,12 +88,12 @@ export function DashboardWidgets() {
             <div className="p-2 rounded-lg bg-primary/10">
               <Battery className="w-6 h-6 text-primary" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-xs uppercase tracking-wider text-muted-foreground font-rajdhani">Arc Reactor</p>
-              <p className="text-2xl font-orbitron font-bold text-foreground" data-testid="text-battery">
+              <p className="text-xl md:text-2xl font-orbitron font-bold text-foreground" data-testid="text-battery">
                 {battery.level}%
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground truncate">
                 {battery.charging ? 'Charging' : 'Active'}
               </p>
             </div>
@@ -112,10 +112,10 @@ export function DashboardWidgets() {
             <div className="p-2 rounded-lg bg-primary/10">
               <Clock className="w-6 h-6 text-primary" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-xs uppercase tracking-wider text-muted-foreground font-rajdhani">Current Time</p>
-              <p className="text-2xl font-orbitron font-bold text-foreground">{currentTime}</p>
-              <p className="text-xs text-muted-foreground">{currentDate}</p>
+              <p className="text-xl md:text-2xl font-orbitron font-bold text-foreground truncate">{currentTime}</p>
+              <p className="text-xs text-muted-foreground truncate">{currentDate}</p>
             </div>
           </div>
         </Card>

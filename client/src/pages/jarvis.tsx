@@ -16,7 +16,8 @@ import type { ChatMessage } from '@shared/schema';
 import { motion } from 'framer-motion';
 import { apiRequest } from '@/lib/queryClient';
 import { useDeviceDetection, useBatteryStatus } from '@/hooks/use-device-detection';
-import { Zap } from 'lucide-react';
+import { TonysPhoneMirror } from '@/components/tonys-phone-mirror';
+import { Zap, Smartphone } from 'lucide-react';
 
 interface StarkScanData {
   timestamp: number;
@@ -53,6 +54,7 @@ export default function JarvisPage() {
   const [voiceSupported, setVoiceSupported] = useState(true);
   const [showScan, setShowScan] = useState(false);
   const [showBlueprints, setShowBlueprints] = useState(false);
+  const [showPhone, setShowPhone] = useState(false);
   const [scanData, setScanData] = useState<StarkScanData | null>(null);
   const recognitionRef = useRef<any>(null);
   const { toast } = useToast();
@@ -389,16 +391,19 @@ export default function JarvisPage() {
             >
               MCU Quiz
             </motion.button>
-            {/* Suit Archive Button on Desktop */}
+
+            {/* Phone Mirror Button on Desktop */}
             <motion.button
-              onClick={() => navigate('/suits')}
-              className="w-full px-4 py-2 bg-gradient-to-r from-red-500/20 to-yellow-500/20 border border-red-500/40 hover:from-red-500/30 hover:to-yellow-500/30 rounded-lg text-sm font-orbitron text-red-400 transition-colors"
+              onClick={() => setShowPhone(true)}
+              className="w-full px-4 py-2 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 hover:from-cyan-500/30 hover:to-blue-500/30 rounded-lg text-sm font-orbitron text-cyan-400 transition-colors flex items-center justify-center gap-2"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              data-testid="button-suit-archive"
+              data-testid="button-phone-mirror"
             >
-              🦾 SUIT ARCHIVE
+              <Smartphone className="w-4 h-4" />
+              Tony's Phone
             </motion.button>
+
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -525,14 +530,14 @@ export default function JarvisPage() {
                   Quiz
                 </motion.button>
                 <motion.button
-                  onClick={() => navigate('/suits')}
-                  className={`flex-1 px-2 md:px-3 py-2 md:py-3 bg-gradient-to-r from-red-500/20 to-yellow-500/20 border border-red-500/40 hover:from-red-500/30 hover:to-yellow-500/30 rounded-lg text-[0.65rem] md:text-xs font-orbitron text-red-400 transition-colors active:scale-95 ${device.isIPhone ? 'min-h-11 md:min-h-12 touch-target' : 'min-h-10 md:min-h-11'
+                  onClick={() => setShowPhone(true)}
+                  className={`flex-1 px-2 md:px-3 py-2 md:py-3 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 hover:from-cyan-500/30 hover:to-blue-500/30 rounded-lg text-[0.65rem] md:text-xs font-orbitron text-cyan-400 transition-colors active:scale-95 ${device.isIPhone ? 'min-h-11 md:min-h-12 touch-target' : 'min-h-10 md:min-h-11'
                     }`}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  data-testid="button-suit-archive-mobile"
+                  data-testid="button-phone-mirror-mobile"
                 >
-                  Suits
+                  Phone
                 </motion.button>
               </div>
               <div className="flex justify-center">
@@ -552,6 +557,9 @@ export default function JarvisPage() {
           </div>
         </div>
       </div>
+
+      {/* Phone Mirror Component - Rendered at root level for overlay */}
+      <TonysPhoneMirror isOpen={showPhone} onClose={() => setShowPhone(false)} />
     </div>
   );
 }

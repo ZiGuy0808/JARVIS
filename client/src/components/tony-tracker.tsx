@@ -99,14 +99,14 @@ export function TonyTracker() {
           </h3>
           {activity ? (
             <>
-              <p className="text-sm md:text-lg font-orbitron font-semibold text-foreground mb-1" data-testid="text-tony-activity">
+              <p className="text-sm md:text-lg font-orbitron font-semibold text-foreground mb-1 truncate" data-testid="text-tony-activity">
                 {activity.activity}
               </p>
-              <p className="text-xs md:text-sm text-muted-foreground flex items-center gap-2" data-testid="text-tony-location">
-                <MapPin className="w-3 h-3 md:w-4 md:h-4" />
-                {activity.location}
+              <p className="text-xs md:text-sm text-muted-foreground flex items-center gap-2 truncate" data-testid="text-tony-location">
+                <MapPin className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                <span className="truncate">{activity.location}</span>
               </p>
-              <p className="text-xs font-mono text-muted-foreground/70 mt-1">
+              <p className="text-xs font-mono text-muted-foreground/70 mt-1 truncate">
                 {activity.coordinates.lat.toFixed(4)}, {activity.coordinates.lng.toFixed(4)}
               </p>
             </>
@@ -115,7 +115,7 @@ export function TonyTracker() {
           )}
         </div>
 
-        <div 
+        <div
           ref={containerRef}
           className="relative w-full h-48 md:h-56 bg-background/50 rounded-lg border border-primary/10 overflow-hidden"
           data-testid="map-container"
@@ -139,7 +139,7 @@ export function TonyTracker() {
                   const ringOpacity = Math.max(0.3, battery / 100);
                   const outerGlowColor = `rgba(${battery > 75 ? '0, 255, 200' : battery > 50 ? '0, 255, 150' : battery > 25 ? '255, 200, 0' : '255, 100, 100'}, ${ringOpacity})`;
                   const coreColor = arcReactorColor;
-                  
+
                   el.innerHTML = `
                     <svg width="28" height="28" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 0 ${glowIntensity}px ${coreColor}); animation: arc-reactor-pulse 2s ease-in-out infinite;">
                       <!-- Outer glow -->
@@ -187,7 +187,7 @@ export function TonyTracker() {
                   backgroundSize: '20px 20px'
                 }} />
               </div>
-              
+
               {activity && (
                 <motion.div
                   className="absolute w-3 h-3 -ml-1.5 -mt-1.5"
