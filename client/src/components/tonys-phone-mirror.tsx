@@ -206,7 +206,19 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
     const [chatHistory, setChatHistory] = useState<{ from: string; text: string; time: string }[]>([]);
     const [inputMessage, setInputMessage] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const [isWaitingToReply, setIsWaitingToReply] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const followUpTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const lastTonyMessageRef = useRef<number>(0);
+
+    // Clean up timers on unmount or contact change
+    useEffect(() => {
+        return () => {
+            if (followUpTimerRef.current) {
+                clearTimeout(followUpTimerRef.current);
+            }
+        };
+    }, [selectedContact]);
 
     // Connection animation on mount
     useEffect(() => {
@@ -214,6 +226,10 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
             setConnecting(true);
             setConnectionProgress(0);
             setSelectedContact(null);
+            // Clear any pending timers
+            if (followUpTimerRef.current) {
+                clearTimeout(followUpTimerRef.current);
+            }
             return;
         }
 
@@ -263,7 +279,55 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
     // Scroll to bottom when messages change
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [chatHistory, isTyping]);
+    }, [chatHistory, isTyping, isWaitingToReply]);
+
+    // Spider-Man follow-up spam function
+    const sendFollowUp = async (characterId: string, characterName: string) => {
+        if (characterId !== 'peter') return; // Only Spider-Man spams
+
+        // Check if Tony has replied recently (within last 20 seconds)
+        if (Date.now() - lastTonyMessageRef.current < 20000) return;
+
+        console.log('[PHONE] Spider-Man is getting impatient...');
+
+        setIsTyping(true);
+
+        // Spider-Man follow-up messages
+        const spamMessages = [
+            "Mr. Stark???",
+            "Hello?????",
+            "Are you there??",
+            "Mr. Stark are you mad at me??",
+            "Did I do something wrong??",
+            "Please respond!!",
+            "Is this about the building thing again?",
+            "I said I was sorry about the ferry!!"
+        ];
+
+        // Pick 1-3 random messages
+        const numMessages = 1 + Math.floor(Math.random() * 3);
+        const selectedMessages: string[] = [];
+        for (let i = 0; i < numMessages; i++) {
+            const randomIdx = Math.floor(Math.random() * spamMessages.length);
+            selectedMessages.push(spamMessages[randomIdx]);
+        }
+
+        for (const text of selectedMessages) {
+            await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+            setChatHistory(prev => [...prev, {
+                from: characterId,
+                text: text,
+                time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+            }]);
+        }
+
+        setIsTyping(false);
+
+        // Schedule another follow-up in 30-60 seconds if Tony still doesn't reply
+        followUpTimerRef.current = setTimeout(() => {
+            sendFollowUp(characterId, characterName);
+        }, 30000 + Math.random() * 30000);
+    };
 
     // AI Chat mutation
     const chatMutation = useMutation({
@@ -274,17 +338,29 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                 message,
                 context: chatHistory.slice(-6).map(m => `${m.from === 'tony' ? 'Tony' : selectedContact?.realName}: ${m.text}`).join('\n')
             });
-            return response.json(); // Now returns { messages: string[] }
+            return response.json();
         },
         onSuccess: async (data) => {
-            const messages = data.messages || [data.response]; // Fallback if API hasn't updated yet
+            // Clear any follow-up timer since they're responding
+            if (followUpTimerRef.current) {
+                clearTimeout(followUpTimerRef.current);
+            }
+
+            const messages = data.messages || [data.response];
+
+            // Random delay before they start responding (3-15 seconds) to feel realistic
+            const replyDelay = 3000 + Math.random() * 12000;
+            setIsWaitingToReply(true);
+            console.log(`[PHONE] ${selectedContact?.nickname} will reply in ${Math.round(replyDelay / 1000)}s...`);
+            await new Promise(resolve => setTimeout(resolve, replyDelay));
+            setIsWaitingToReply(false);
 
             setIsTyping(true);
 
             // Simulate typing and sending multiple messages
             for (const text of messages) {
-                // Random delay between 800ms and 2000ms per message to feel natural
-                await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1200));
+                // Random delay between 800ms and 2500ms per message
+                await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1700));
 
                 setChatHistory(prev => [...prev, {
                     from: selectedContact?.id || 'unknown',
@@ -294,6 +370,13 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
             }
 
             setIsTyping(false);
+
+            // Start follow-up timer for Spider-Man (he spams if you don't reply in 30 seconds)
+            if (selectedContact?.id === 'peter') {
+                followUpTimerRef.current = setTimeout(() => {
+                    sendFollowUp(selectedContact?.id || '', selectedContact?.realName || '');
+                }, 30000 + Math.random() * 15000);
+            }
 
             // Save to server
             try {
@@ -309,11 +392,21 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
         onError: (error) => {
             console.error('[PHONE CHAT ERROR]', error);
             setIsTyping(false);
+            setIsWaitingToReply(false);
         }
     });
 
     const handleSend = () => {
         if (!inputMessage.trim() || !selectedContact) return;
+
+        // Clear any follow-up timer since Tony is responding
+        if (followUpTimerRef.current) {
+            clearTimeout(followUpTimerRef.current);
+            followUpTimerRef.current = null;
+        }
+
+        // Track when Tony last sent a message
+        lastTonyMessageRef.current = Date.now();
 
         // Add Tony's message
         setChatHistory(prev => [...prev, {
@@ -430,18 +523,23 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                                             </div>
                                         </motion.div>
                                     ))}
-                                    {chatMutation.isPending && (
+                                    {(isWaitingToReply || isTyping) && (
                                         <div className="flex justify-start">
                                             <div className="bg-gray-800 text-white px-3 py-2 rounded-2xl rounded-bl-md">
-                                                <motion.div
-                                                    animate={{ opacity: [0.4, 1, 0.4] }}
-                                                    transition={{ duration: 1.2, repeat: Infinity }}
-                                                    className="flex gap-1"
-                                                >
-                                                    <span className="w-2 h-2 bg-gray-500 rounded-full" />
-                                                    <span className="w-2 h-2 bg-gray-500 rounded-full" />
-                                                    <span className="w-2 h-2 bg-gray-500 rounded-full" />
-                                                </motion.div>
+                                                <div className="flex items-center gap-2">
+                                                    {isWaitingToReply && !isTyping && (
+                                                        <span className="text-xs text-gray-400">thinking...</span>
+                                                    )}
+                                                    <motion.div
+                                                        animate={{ opacity: [0.4, 1, 0.4] }}
+                                                        transition={{ duration: 1.2, repeat: Infinity }}
+                                                        className="flex gap-1"
+                                                    >
+                                                        <span className="w-2 h-2 bg-gray-500 rounded-full" />
+                                                        <span className="w-2 h-2 bg-gray-500 rounded-full" />
+                                                        <span className="w-2 h-2 bg-gray-500 rounded-full" />
+                                                    </motion.div>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
