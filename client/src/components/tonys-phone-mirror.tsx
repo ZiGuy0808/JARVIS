@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { X, ChevronLeft, Send, Phone, Signal, Wifi, Battery } from 'lucide-react';
+import { X, ChevronLeft, Send, Phone, Signal, Wifi, Battery, User } from 'lucide-react';
 
 // Character data with Tony's nicknames and personalities
 // Using real Marvel movie images
@@ -241,12 +241,24 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
         return () => clearInterval(interval);
     }, [isOpen]);
 
-    // Load chat history when contact selected
+    // Load chat history when contact selected - first try server, fallback to defaults
+    const { data: serverHistory } = useQuery({
+        queryKey: ['/api/phone/history', selectedContact?.id],
+        queryFn: async () => {
+            if (!selectedContact) return null;
+            const res = await fetch(`/api/phone/history/${selectedContact.id}`);
+            const data = await res.json();
+            return data.history?.length > 0 ? data.history : null;
+        },
+        enabled: !!selectedContact,
+    });
+
     useEffect(() => {
         if (selectedContact) {
-            setChatHistory([...selectedContact.history]);
+            // Use server history if available, otherwise use defaults
+            setChatHistory(serverHistory || [...selectedContact.history]);
         }
-    }, [selectedContact]);
+    }, [selectedContact, serverHistory]);
 
     // Scroll to bottom when messages change
     useEffect(() => {
@@ -282,8 +294,20 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
             }
 
             setIsTyping(false);
+
+            // Save to server
+            try {
+                await fetch('/api/phone/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ characterId: selectedContact?.id, messages: [...chatHistory, ...messages.map((text: string) => ({ from: selectedContact?.id || 'unknown', text, time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) }))] })
+                });
+            } catch (e) {
+                console.error('[PHONE CHAT] Failed to save history:', e);
+            }
         },
-        onError: () => {
+        onError: (error) => {
+            console.error('[PHONE CHAT ERROR]', error);
             setIsTyping(false);
         }
     });
@@ -312,7 +336,6 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-                onClick={onClose}
             >
                 {/* iPhone Container */}
                 <motion.div
@@ -368,8 +391,14 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                                     >
                                         <ChevronLeft className="w-6 h-6 text-blue-500" />
                                     </button>
-                                    <div className={`w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br ${selectedContact.color} flex-shrink-0`}>
-                                        <img src={selectedContact.avatarUrl} alt={selectedContact.realName} className="w-full h-full object-cover" />
+                                    <div className={`w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br ${selectedContact.color} flex-shrink-0 flex items-center justify-center`}>
+                                        <img
+                                            src={selectedContact.avatarUrl}
+                                            alt={selectedContact.realName}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                        />
+                                        <User className="w-5 h-5 text-white/70 absolute" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-white font-semibold truncate">{selectedContact.nickname}</p>
@@ -458,8 +487,14 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                                             onClick={() => setSelectedContact(contact)}
                                             className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-900 transition-colors border-b border-gray-800/50"
                                         >
-                                            <div className={`w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br ${contact.color} flex-shrink-0`}>
-                                                <img src={contact.avatarUrl} alt={contact.realName} className="w-full h-full object-cover" />
+                                            <div className={`w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br ${contact.color} flex-shrink-0 flex items-center justify-center`}>
+                                                <img
+                                                    src={contact.avatarUrl}
+                                                    alt={contact.realName}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                />
+                                                <User className="w-6 h-6 text-white/70 absolute" />
                                             </div>
                                             <div className="flex-1 min-w-0 text-left">
                                                 <p className="text-white font-semibold truncate">{contact.nickname}</p>

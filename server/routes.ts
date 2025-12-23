@@ -463,6 +463,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Phone Mirror - In-memory chat history storage (persists until server restart)
+  const phoneChatHistory: Record<string, { from: string; text: string; time: string }[]> = {};
+
+  // Get chat history for a character
+  app.get("/api/phone/history/:characterId", (req, res) => {
+    const { characterId } = req.params;
+    const history = phoneChatHistory[characterId] || [];
+    res.json({ history });
+  });
+
+  // Save chat message
+  app.post("/api/phone/save", (req, res) => {
+    const { characterId, messages } = req.body;
+    if (!characterId || !messages) {
+      return res.status(400).json({ error: 'Character ID and messages are required' });
+    }
+    phoneChatHistory[characterId] = messages;
+    res.json({ success: true });
+  });
+
   // Phone Mirror - Character Chat endpoint
   app.post("/api/phone/chat", async (req, res) => {
     try {
