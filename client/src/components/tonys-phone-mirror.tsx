@@ -92,7 +92,7 @@ const CONTACTS = [
         id: 'steve',
         nickname: 'Capsicle 🧊',
         realName: 'Steve Rogers',
-        avatarUrl: 'https://i.imgur.com/mVZ7B8M.jpg', // Chris Evans Cap
+        avatarUrl: '/api/assets/profile_pictures/steve.png',
         status: 'Star Spangled Man',
         color: 'from-blue-600 to-red-500',
         spamLevel: 'low', // Cap is patient and formal
@@ -142,7 +142,7 @@ const CONTACTS = [
         id: 'natasha',
         nickname: 'Nat 🕷️',
         realName: 'Natasha Romanoff',
-        avatarUrl: 'https://i.imgur.com/0xqFqYx.jpg', // Scarlett Johansson Black Widow
+        avatarUrl: '/api/assets/profile_pictures/natasha.png',
         status: 'SHIELD Agent (Level 7)',
         color: 'from-gray-800 to-red-900',
         spamLevel: 'none', // Nat sends one message and waits
@@ -161,7 +161,7 @@ const CONTACTS = [
         id: 'fury',
         nickname: 'Pirate 👁️',
         realName: 'Nick Fury',
-        avatarUrl: 'https://i.imgur.com/WTZCbZk.jpg', // Samuel L Jackson
+        avatarUrl: '/api/assets/profile_pictures/fury.png',
         status: 'Director of SHIELD',
         color: 'from-gray-900 to-black',
         spamLevel: 'demanding', // Fury demands responses
@@ -690,7 +690,6 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                                             className="w-full h-full object-cover"
                                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                         />
-                                        <User className="w-5 h-5 text-white/70 absolute" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-white font-semibold truncate">{selectedContact.nickname}</p>
@@ -771,7 +770,6 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                                                     className="w-full h-full object-cover"
                                                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                                 />
-                                                <User className="w-6 h-6 text-white/70 absolute" />
                                             </div>
                                             <div className="flex-1 min-w-0 text-left">
                                                 <p className="text-white font-semibold truncate">{contact.nickname}</p>

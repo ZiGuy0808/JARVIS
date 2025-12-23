@@ -17,6 +17,7 @@ import { motion } from 'framer-motion';
 import { apiRequest } from '@/lib/queryClient';
 import { useDeviceDetection, useBatteryStatus } from '@/hooks/use-device-detection';
 import { TonysPhoneMirror } from '@/components/tonys-phone-mirror';
+import { PhoneNotifications } from '@/components/phone-notifications';
 import { Zap, Smartphone } from 'lucide-react';
 
 interface StarkScanData {
@@ -557,6 +558,9 @@ export default function JarvisPage() {
           </div>
         </div>
       </div>
+
+      {/* Phone Notifications - Shows incoming texts on main screen */}
+      <PhoneNotifications onOpenPhone={() => setShowPhone(true)} />
 
       {/* Phone Mirror Component - Rendered at root level for overlay */}
       <TonysPhoneMirror isOpen={showPhone} onClose={() => setShowPhone(false)} />
