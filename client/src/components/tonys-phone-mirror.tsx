@@ -363,6 +363,12 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
     const previousContactRef = useRef<typeof CONTACTS[0] | null>(null);
     const previousHistoryRef = useRef<{ from: string; text: string; time: string }[]>([]);
 
+    // KEEP HISTORY REF FRESH: Update whenever chat history changes 
+    // This prevents stale history from the *previous* render cycle clobbering the wrong contact
+    useEffect(() => {
+        previousHistoryRef.current = chatHistory;
+    }, [chatHistory]);
+
     // Save chat history when leaving a contact or closing phone
     useEffect(() => {
         // If we had a previous contact and history, save it
@@ -381,9 +387,8 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
             }).catch(e => console.error('[PHONE] Failed to save on leave:', e));
         }
 
-        // Update refs for next change
+        // Update ref for next change
         previousContactRef.current = selectedContact;
-        previousHistoryRef.current = chatHistory;
     }, [selectedContact]);
 
     // Also save when phone closes
