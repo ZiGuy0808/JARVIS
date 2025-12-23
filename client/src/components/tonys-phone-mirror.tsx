@@ -499,7 +499,9 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
     const sendFollowUp = useCallback(async () => {
         if (!selectedContact || !chatActiveRef.current) return;
 
-        const characterId = selectedContact.id;
+        // Capture the original contact ID to validate throughout
+        const originalContactId = selectedContact.id;
+        const originalContactName = selectedContact.realName;
         const spamLevel = selectedContact.spamLevel;
 
         // Check if Tony has replied recently
@@ -544,30 +546,54 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
             return;
         }
 
-        console.log(`[PHONE] ${selectedContact.nickname} is checking in (AI-generated)...`);
+        // VALIDATE: Check contact hasn't changed
+        if (selectedContact?.id !== originalContactId) {
+            console.log(`[PHONE] Follow-up cancelled - switched from ${originalContactId} to ${selectedContact?.id}`);
+            return;
+        }
+
+        console.log(`[PHONE] ${originalContactName} is checking in (AI-generated)...`);
 
         try {
             // Generate AI follow-up based on conversation context
             const context = chatHistory.slice(-6).map(m =>
-                `${m.from === 'tony' ? 'Tony' : selectedContact.realName}: ${m.text}`
+                `${m.from === 'tony' ? 'Tony' : originalContactName}: ${m.text}`
             ).join('\n');
 
             const timeSinceLastReply = Math.round((Date.now() - lastTonyMessageRef.current) / 1000);
 
             const response = await apiRequest('POST', '/api/phone/followup', {
-                characterId,
-                characterName: selectedContact.realName,
+                characterId: originalContactId,
+                characterName: originalContactName,
                 context,
                 timeSinceLastReply
             });
+
+            // VALIDATE AGAIN: Check contact hasn't changed after API call
+            if (selectedContact?.id !== originalContactId) {
+                console.log(`[PHONE] Follow-up response discarded - switched from ${originalContactId} to ${selectedContact?.id}`);
+                return;
+            }
 
             const messages = response.messages || [];
 
             // Add messages to chat with realistic delays
             for (const text of messages) {
-                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+                // VALIDATE before each message
+                if (selectedContact?.id !== originalContactId) {
+                    console.log(`[PHONE] Message discarded mid-stream - contact changed`);
+                    return;
+                }
+
+                setIsTyping(true);
+                await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1500));
+                setIsTyping(false);
+
+                // Final validation before adding
+                if (selectedContact?.id !== originalContactId) return;
+
                 setChatHistory(prev => [...prev, {
-                    from: characterId,
+                    from: originalContactId,
                     text: text,
                     time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
                 }]);
@@ -579,8 +605,10 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
             console.error('[PHONE] Failed to generate follow-up:', error);
         }
 
-        // Schedule another follow-up
-        scheduleNextFollowUp();
+        // Schedule another follow-up (only if still on same contact)
+        if (selectedContact?.id === originalContactId) {
+            scheduleNextFollowUp();
+        }
     }, [selectedContact, chatHistory]);
 
     // Schedule the next follow-up based on character
