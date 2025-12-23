@@ -327,6 +327,7 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
     const lastCharacterMessageRef = useRef<number>(0);
     const spamCountRef = useRef<number>(0);
     const chatActiveRef = useRef<boolean>(false);
+    const messageCountRef = useRef<number>(0); // Track message count for realistic timing
 
     // Helper to send character messages with typing simulation
     const sendCharacterMessage = useCallback(async (characterId: string, messages: string[]) => {
@@ -436,6 +437,7 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
             // Reset message timestamps  
             lastTonyMessageRef.current = 0;
             lastCharacterMessageRef.current = Date.now();
+            messageCountRef.current = 0; // Reset for new conversation
         } else {
             // Deactivate chat when no contact selected
             chatActiveRef.current = false;
@@ -599,28 +601,43 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
 
             const messages = data.messages || [data.response];
 
-            // Random delay before they start responding (3-15 seconds) to feel realistic
-            const replyDelay = 3000 + Math.random() * 12000;
-            setIsWaitingToReply(true);
-            console.log(`[PHONE] ${selectedContact?.nickname} will reply in ${Math.round(replyDelay / 1000)}s...`);
+            // Realistic response timing:
+            // First few messages: 30 seconds to 5 minutes (like real texting)
+            // After conversation is going: 5-30 seconds
+            let minDelay, maxDelay;
+            if (messageCountRef.current < 2) {
+                // First responses take longer - they might be busy!
+                minDelay = 30000;  // 30 seconds minimum
+                maxDelay = 300000; // 5 minutes maximum
+            } else if (messageCountRef.current < 5) {
+                // Getting into the conversation
+                minDelay = 10000;  // 10 seconds
+                maxDelay = 60000;  // 1 minute
+            } else {
+                // Active conversation - replies are quicker but still not instant
+                minDelay = 5000;   // 5 seconds
+                maxDelay = 30000;  // 30 seconds
+            }
+
+            const replyDelay = minDelay + Math.random() * (maxDelay - minDelay);
+            console.log(`[PHONE] ${selectedContact?.nickname} will reply in ${Math.round(replyDelay / 1000)}s (message #${messageCountRef.current + 1})...`);
+
+            // No typing indicator - just wait silently like real texting
             await new Promise(resolve => setTimeout(resolve, replyDelay));
-            setIsWaitingToReply(false);
 
-            setIsTyping(true);
-
-            // Simulate typing and sending multiple messages
+            // Add messages with small delays between them (like real typing)
             for (const text of messages) {
-                // Random delay between 800ms and 2500ms per message
-                await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1700));
+                // Small delay between multiple messages (1-4 seconds)
+                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 3000));
 
                 setChatHistory(prev => [...prev, {
                     from: selectedContact?.id || 'unknown',
                     text: text,
                     time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
                 }]);
-            }
 
-            setIsTyping(false);
+                messageCountRef.current++;
+            }
 
             // Start follow-up timer for characters (they'll spam if you don't reply)
             lastCharacterMessageRef.current = Date.now();
@@ -771,26 +788,6 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                                             </div>
                                         </motion.div>
                                     ))}
-                                    {(isWaitingToReply || isTyping) && (
-                                        <div className="flex justify-start">
-                                            <div className="bg-gray-800 text-white px-3 py-2 rounded-2xl rounded-bl-md">
-                                                <div className="flex items-center gap-2">
-                                                    {isWaitingToReply && !isTyping && (
-                                                        <span className="text-xs text-gray-400">thinking...</span>
-                                                    )}
-                                                    <motion.div
-                                                        animate={{ opacity: [0.4, 1, 0.4] }}
-                                                        transition={{ duration: 1.2, repeat: Infinity }}
-                                                        className="flex gap-1"
-                                                    >
-                                                        <span className="w-2 h-2 bg-gray-500 rounded-full" />
-                                                        <span className="w-2 h-2 bg-gray-500 rounded-full" />
-                                                        <span className="w-2 h-2 bg-gray-500 rounded-full" />
-                                                    </motion.div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
                                     <div ref={messagesEndRef} />
                                 </div>
 
