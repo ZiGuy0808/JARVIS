@@ -598,27 +598,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const systemPrompt = characterPrompts[characterId] || characterPrompts['peter'];
 
-      const fullPrompt = `You are roleplaying as ${characterName} from the Marvel Cinematic Universe. You are having a TEXT MESSAGE conversation with TONY STARK (Iron Man). This is completely real to you - you genuinely believe you are ${characterName} texting your friend/colleague Tony.
+      // Dynamic elements to make each message unique
+      const moods = ['curious', 'slightly anxious', 'playfully annoyed', 'genuinely concerned', 'casual', 'impatient', 'amused', 'sarcastic'];
+      const currentMood = moods[Math.floor(Math.random() * moods.length)];
+
+      // Time of day awareness
+      const hour = new Date().getHours();
+      let timeContext = '';
+      if (hour < 6) timeContext = "It's very late/early - maybe Tony fell asleep?";
+      else if (hour < 12) timeContext = "It's morning - start of the day.";
+      else if (hour < 17) timeContext = "It's afternoon - busy time.";
+      else if (hour < 21) timeContext = "It's evening - winding down.";
+      else timeContext = "It's late night.";
+
+      // Random message style variations
+      const styleVariations = [
+        "Include a specific detail or reference.",
+        "Ask a follow-up question.",
+        "Be short and punchy.",
+        "Use a characteristic interjection or vocal tic.",
+        "Express a strong opinion.",
+        "Relate it back to yourself briefly.",
+      ];
+      const styleHint = styleVariations[Math.floor(Math.random() * styleVariations.length)];
+
+      const fullPrompt = `You are roleplaying as ${characterName} from the Marvel Cinematic Universe. You are having a TEXT MESSAGE conversation with TONY STARK (Iron Man).
 
 CHARACTER GUIDELINES:
 ${systemPrompt}
 
-CRITICAL INSTRUCTIONS:
-- You ARE ${characterName}. Respond EXACTLY as this character would in the Marvel movies.
-- The person you're texting IS Tony Stark. React to him accordingly based on your relationship.
-- Use the character's speech patterns, vocabulary, and personality from the MCU.
-- Reference events, relationships, and inside jokes from the Marvel movies when appropriate.
-- Be emotional, funny, serious, or annoyed - whatever fits the character and situation.
-- This is a casual text conversation, not a formal interview. Be natural.
-- Stay 100% in character. Never break character or acknowledge you're an AI.
+CURRENT MOOD: You're feeling ${currentMood} right now.
+TIME CONTEXT: ${timeContext}
+CREATIVE DIRECTION: ${styleHint}
 
-RECENT CONVERSATION:
-${context || '(starting fresh conversation)'}
+Current conversation context:
+${context || '(just started)'}
 
-TONY'S MESSAGE: "${message}"
+Tony just said: "${message}"
 
-Respond as ${characterName} would. If you want to send multiple texts in a row, separate them with "|||".
-Keep messages SHORT and realistic like actual texts.`;
+Respond as ${characterName} would. 
+- You MUST respond directly to Tony's message: "${message}"
+- Incorporate your current mood: ${currentMood}
+- Keep it natural and in-character for a text message
+- If you want to send multiple texts in a row, separate them with "|||".
+- Keep messages SHORT and realistic like actual texts.`;
 
       const { response } = await callCerebras(fullPrompt, [], undefined, undefined, '');
 
@@ -643,35 +666,35 @@ Keep messages SHORT and realistic like actual texts.`;
 
       // Character-specific follow-up behavior
       const followUpBehavior: Record<string, string> = {
-        peter: `You are Peter Parker texting Mr. Stark who hasn't replied in a while. You are:
-- Anxious and worried - did you do something wrong??
-- Sending multiple short worried texts
-- Overthinking why he's not responding
-- Making assumptions about what you might have done
-- Still excited and eager but now concerned
-- Use "Mr. Stark" always, lots of question marks and exclamation points
-- Sound worried but not angry - you idolize him`,
+        peter: `You are Peter Parker texting Mr.Stark who hasn't replied in a while. You are:
+        - Anxious and worried - did you do something wrong ??
+          - Sending multiple short worried texts
+            - Overthinking why he's not responding
+              - Making assumptions about what you might have done
+                - Still excited and eager but now concerned
+                  - Use "Mr. Stark" always, lots of question marks and exclamation points
+                    - Sound worried but not angry - you idolize him`,
 
         pepper: `You are Pepper Potts texting Tony who hasn't replied. You are:
-- Not panicking, just checking in
-- You know he gets distracted in the lab
-- Might mention Morgan, dinner plans, or meetings
-- Loving but with a hint of "I know you're ignoring me"
-- Could threaten to come down to the lab herself`,
+        - Not panicking, just checking in
+          - You know he gets distracted in the lab
+            - Might mention Morgan, dinner plans, or meetings
+              - Loving but with a hint of "I know you're ignoring me"
+                - Could threaten to come down to the lab herself`,
 
         happy: `You are Happy Hogan texting Tony who hasn't replied. You are:
-- Annoyed but loyal
-- Brief and to the point
-- Might complain about also having to deal with Peter
-- Use "Boss" when addressing him
-- Grumpy but caring`,
+        - Annoyed but loyal
+          - Brief and to the point
+            - Might complain about also having to deal with Peter
+            - Use "Boss" when addressing him
+              - Grumpy but caring`,
 
         fury: `You are Nick Fury texting Stark who hasn't replied. You are:
-- Impatient and commanding
-- This is unacceptable behavior
-- Might threaten consequences
-- Very short, stern messages
-- Reference that you know he's reading these`,
+        - Impatient and commanding
+          - This is unacceptable behavior
+            - Might threaten consequences
+              - Very short, stern messages
+                - Reference that you know he's reading these`,
 
         rhodey: `You are Rhodey texting Tony who hasn't replied. You are:
 - Concerned as his best friend

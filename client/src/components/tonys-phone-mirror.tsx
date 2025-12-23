@@ -248,9 +248,10 @@ const OPENER_PROMPTS: Record<string, string[]> = {
 interface PhoneMirrorProps {
     isOpen: boolean;
     onClose: () => void;
+    onNotification?: (message: string) => void;
 }
 
-export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
+export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirrorProps) {
     const [connecting, setConnecting] = useState(true);
     const [connectionProgress, setConnectionProgress] = useState(0);
     const [connectionStatus, setConnectionStatus] = useState('Establishing secure uplink...');
@@ -269,6 +270,11 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
     const chatActiveRef = useRef<boolean>(false);
     const messageCountRef = useRef<number>(0); // Track message count for realistic timing
     const currentContactIdRef = useRef<string | null>(null); // Track current contact for async validation
+    const isOpenRef = useRef(isOpen); // Track visibility for async callbacks
+
+    useEffect(() => {
+        isOpenRef.current = isOpen;
+    }, [isOpen]);
 
     // Track latest messages for each contact (for the list view) with timestamp for sorting
     const [contactPreviews, setContactPreviews] = useState<Record<string, { text: string; time: string; timestamp: number }>>({});
@@ -678,6 +684,7 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
         },
         onSuccess: async (data) => {
             const originalContactId = data._originalContactId;
+            const originalContactName = data._originalContactName;
             const messages = data.messages || [data.response];
 
             // Clear any follow-up timer
@@ -742,8 +749,8 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                 console.error('[PHONE] Failed to save:', e);
             }
 
-            // Only update local UI if still viewing the same contact
-            if (currentContactIdRef.current === originalContactId) {
+            // Only update local UI if still viewing the same contact AND phone is open
+            if (currentContactIdRef.current === originalContactId && isOpenRef.current) {
                 setIsTyping(false);
 
                 for (const msg of newMessages) {
@@ -752,8 +759,11 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                     setIsTyping(false);
 
                     // Final check before adding to UI
-                    if (currentContactIdRef.current === originalContactId) {
+                    if (currentContactIdRef.current === originalContactId && isOpenRef.current) {
                         setChatHistory(prev => [...prev, msg]);
+                    } else {
+                        // User left mid-stream
+                        onNotification?.(`${originalContactName}: ${msg.text}`);
                     }
                     messageCountRef.current++;
                 }
@@ -762,8 +772,14 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                 lastCharacterMessageRef.current = Date.now();
                 scheduleNextFollowUp();
             } else {
-                console.log(`[PHONE] Response saved to ${originalContactId} but not shown (viewing ${currentContactIdRef.current})`);
+                console.log(`[PHONE] Response saved to ${originalContactId} (background/switched view)`);
                 setIsTyping(false);
+
+                // Simulate delays for background arrival
+                for (const msg of newMessages) {
+                    await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1500));
+                    onNotification?.(`${originalContactName}: ${msg.text}`);
+                }
             }
         },
         onError: (error) => {
@@ -810,225 +826,239 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
         setInputMessage('');
     };
 
-    if (!isOpen) return null;
+    // Removed early return to keep timers alive
+    // if (!isOpen) return null;
 
     return (
         <AnimatePresence>
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-            >
-                {/* iPhone Container - Responsive for actual iPhones */}
+            {isOpen && (
                 <motion.div
-                    initial={{ scale: 0.8, y: 50 }}
-                    animate={{ scale: 1, y: 0 }}
-                    exit={{ scale: 0.8, y: 50 }}
-                    onClick={(e) => e.stopPropagation()}
-                    className="relative w-full max-w-[375px] h-[90vh] max-h-[750px] bg-black rounded-[40px] md:rounded-[40px] border-4 border-gray-800 shadow-2xl overflow-hidden"
-                    style={{ maxHeight: 'min(750px, calc(100vh - 40px))' }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
                 >
-                    {/* Notch */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-black rounded-b-2xl z-20" />
-
-                    {/* Status Bar */}
-                    <div className="relative z-10 flex items-center justify-between px-6 pt-3 pb-1 text-white text-xs">
-                        <span className="font-semibold">9:41</span>
-                        <div className="flex items-center gap-1">
-                            <Signal className="w-3.5 h-3.5" />
-                            <Wifi className="w-3.5 h-3.5" />
-                            <Battery className="w-4 h-4" />
-                        </div>
-                    </div>
-
-                    {/* Content Area */}
-                    <div className="h-full bg-black pt-2 pb-8">
-                        {connecting ? (
-                            /* Connection Animation */
-                            <div className="h-full flex flex-col items-center justify-center px-6">
-                                <motion.div
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                                    className="w-20 h-20 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full mb-6"
-                                />
-                                <motion.div
-                                    className="w-full h-2 bg-gray-800 rounded-full overflow-hidden mb-4"
-                                >
-                                    <motion.div
-                                        className="h-full bg-gradient-to-r from-cyan-500 to-blue-500"
-                                        animate={{ width: `${connectionProgress}%` }}
-                                        transition={{ duration: 0.3 }}
-                                    />
-                                </motion.div>
-                                <p className="text-cyan-400 text-sm font-mono text-center">{connectionStatus}</p>
-                                <p className="text-gray-500 text-xs mt-2 font-mono">STARK SECURE UPLINK v3.2.1</p>
-                            </div>
-                        ) : selectedContact ? (
-                            /* Chat View */
-                            <div className="h-full flex flex-col">
-                                {/* Chat Header */}
-                                <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800">
-                                    <button
-                                        onClick={() => setSelectedContact(null)}
-                                        className="p-1 hover:bg-gray-800 rounded-full transition-colors"
-                                    >
-                                        <ChevronLeft className="w-6 h-6 text-blue-500" />
-                                    </button>
-                                    <div className={`w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br ${selectedContact.color} flex-shrink-0 flex items-center justify-center`}>
-                                        <img
-                                            src={selectedContact.avatarUrl}
-                                            alt={selectedContact.realName}
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                        />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-white font-semibold truncate">{selectedContact.nickname}</p>
-                                        <p className="text-gray-400 text-xs truncate">{selectedContact.status}</p>
-                                    </div>
-                                    <Phone className="w-5 h-5 text-blue-500" />
-                                </div>
-
-                                {/* Messages - iOS optimized scrolling */}
-                                <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5" style={{ WebkitOverflowScrolling: 'touch' }}>
-                                    {chatHistory.map((msg, idx) => (
-                                        <motion.div
-                                            key={idx}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: idx * 0.02 }}
-                                            className={`flex ${msg.from === 'tony' ? 'justify-end' : 'justify-start'}`}
-                                        >
-                                            <div
-                                                className={`max-w-[80%] px-3 py-1.5 rounded-2xl text-[15px] leading-tight ${msg.from === 'tony'
-                                                    ? 'bg-blue-500 text-white rounded-br-md'
-                                                    : 'bg-gray-800 text-white rounded-bl-md'
-                                                    }`}
-                                            >
-                                                <p className="break-words">{msg.text}</p>
-                                                <p className={`text-[10px] mt-0.5 ${msg.from === 'tony' ? 'text-blue-200' : 'text-gray-500'}`}>
-                                                    {msg.time}
-                                                </p>
-                                            </div>
-                                        </motion.div>
-                                    ))}
-
-                                    {/* Typing Indicator */}
-                                    {isTyping && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            className="flex justify-start"
-                                        >
-                                            <div className="bg-gray-800 px-4 py-2.5 rounded-2xl rounded-bl-md flex items-center gap-1">
-                                                <motion.span
-                                                    animate={{ opacity: [0.4, 1, 0.4] }}
-                                                    transition={{ repeat: Infinity, duration: 1, delay: 0 }}
-                                                    className="w-2 h-2 bg-gray-400 rounded-full"
-                                                />
-                                                <motion.span
-                                                    animate={{ opacity: [0.4, 1, 0.4] }}
-                                                    transition={{ repeat: Infinity, duration: 1, delay: 0.2 }}
-                                                    className="w-2 h-2 bg-gray-400 rounded-full"
-                                                />
-                                                <motion.span
-                                                    animate={{ opacity: [0.4, 1, 0.4] }}
-                                                    transition={{ repeat: Infinity, duration: 1, delay: 0.4 }}
-                                                    className="w-2 h-2 bg-gray-400 rounded-full"
-                                                />
-                                            </div>
-                                        </motion.div>
-                                    )}
-
-                                    <div ref={messagesEndRef} />
-                                </div>
-
-                                {/* Input - iOS keyboard optimized */}
-                                <div className="px-3 py-2 border-t border-gray-800 pb-safe" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="text"
-                                            value={inputMessage}
-                                            onChange={(e) => setInputMessage(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                                            onFocus={() => {
-                                                // Scroll to bottom when keyboard appears
-                                                setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
-                                            }}
-                                            placeholder="Message..."
-                                            className="flex-1 bg-gray-800 text-white px-4 py-2.5 rounded-full text-[16px] outline-none focus:ring-2 focus:ring-blue-500"
-                                            style={{ fontSize: '16px' }} // Prevents iOS zoom on focus
-                                        />
-                                        <button
-                                            onClick={handleSend}
-                                            disabled={!inputMessage.trim() || chatMutation.isPending || isTyping}
-                                            className="p-2.5 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-full transition-colors touch-manipulation"
-                                        >
-                                            <Send className="w-4 h-4 text-white" />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            /* Contact List (Messages App) */
-                            <div className="h-full flex flex-col">
-                                <div className="px-4 py-3">
-                                    <h1 className="text-white text-2xl font-bold">Messages</h1>
-                                    <p className="text-gray-500 text-xs mt-1">Tony's iPhone • Mirrored</p>
-                                </div>
-
-                                <div className="flex-1 overflow-y-auto">
-                                    {/* Sort contacts by most recent message */}
-                                    {[...CONTACTS].sort((a, b) => {
-                                        const aTime = contactPreviews[a.id]?.timestamp || 0;
-                                        const bTime = contactPreviews[b.id]?.timestamp || 0;
-                                        return bTime - aTime; // Most recent first
-                                    }).map((contact, idx) => (
-                                        <motion.button
-                                            key={contact.id}
-                                            initial={{ opacity: 0, x: -20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: idx * 0.05 }}
-                                            onClick={() => setSelectedContact(contact)}
-                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-900 transition-colors border-b border-gray-800/50"
-                                        >
-                                            <div className={`w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br ${contact.color} flex-shrink-0 flex items-center justify-center`}>
-                                                <img
-                                                    src={contact.avatarUrl}
-                                                    alt={contact.realName}
-                                                    className="w-full h-full object-cover"
-                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                                />
-                                            </div>
-                                            <div className="flex-1 min-w-0 text-left">
-                                                <p className="text-white font-semibold truncate">{contact.nickname}</p>
-                                                <p className="text-gray-400 text-sm truncate">
-                                                    {contactPreviews[contact.id]?.text || contact.history[contact.history.length - 1].text}
-                                                </p>
-                                            </div>
-                                            <div className="text-gray-500 text-xs flex-shrink-0">
-                                                {contactPreviews[contact.id]?.time || contact.history[contact.history.length - 1].time}
-                                            </div>
-                                        </motion.button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Home Indicator */}
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-gray-600 rounded-full" />
-
-                    {/* Close Button */}
-                    <button
-                        onClick={onClose}
-                        className="absolute top-4 right-4 z-30 p-2 bg-red-500/20 hover:bg-red-500/40 rounded-full transition-colors"
+                    {/* iPhone Container - Responsive for actual iPhones */}
+                    <motion.div
+                        initial={{ scale: 0.8, y: 50 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.8, y: 50 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="relative w-full max-w-[375px] h-[90vh] max-h-[750px] bg-black rounded-[40px] md:rounded-[40px] border-4 border-gray-800 shadow-2xl overflow-hidden"
+                        style={{ maxHeight: 'min(750px, calc(100vh - 40px))' }}
                     >
-                        <X className="w-4 h-4 text-red-400" />
-                    </button>
+                        {/* Notch */}
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-black rounded-b-2xl z-20" />
+
+                        {/* Status Bar */}
+                        <div className="relative z-10 flex items-center justify-between px-6 pt-3 pb-1 text-white text-xs">
+                            <span className="font-semibold">9:41</span>
+                            <div className="flex items-center gap-1">
+                                <Signal className="w-3.5 h-3.5" />
+                                <Wifi className="w-3.5 h-3.5" />
+                                <Battery className="w-4 h-4" />
+                            </div>
+                        </div>
+
+                        {/* Content Area */}
+                        <div className="h-full bg-black pt-2 pb-8">
+                            {connecting ? (
+                                /* Connection Animation */
+                                <div className="h-full flex flex-col items-center justify-center px-6">
+                                    <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                                        className="w-20 h-20 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full mb-6"
+                                    />
+                                    <motion.div
+                                        className="w-full h-2 bg-gray-800 rounded-full overflow-hidden mb-4"
+                                    >
+                                        <motion.div
+                                            className="h-full bg-gradient-to-r from-cyan-500 to-blue-500"
+                                            animate={{ width: `${connectionProgress}%` }}
+                                            transition={{ duration: 0.3 }}
+                                        />
+                                    </motion.div>
+                                    <p className="text-cyan-400 text-sm font-mono text-center">{connectionStatus}</p>
+                                    <p className="text-gray-500 text-xs mt-2 font-mono">STARK SECURE UPLINK v3.2.1</p>
+                                </div>
+                            ) : selectedContact ? (
+                                /* Chat View */
+                                <div className="h-full flex flex-col">
+                                    {/* Chat Header */}
+                                    <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800">
+                                        <button
+                                            onClick={() => setSelectedContact(null)}
+                                            className="p-1 hover:bg-gray-800 rounded-full transition-colors"
+                                        >
+                                            <ChevronLeft className="w-6 h-6 text-blue-500" />
+                                        </button>
+                                        <div className={`w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br ${selectedContact.color} flex-shrink-0 flex items-center justify-center`}>
+                                            <img
+                                                src={selectedContact.avatarUrl}
+                                                alt={selectedContact.realName}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                            />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-white font-semibold truncate">{selectedContact.nickname}</p>
+                                            <p className="text-gray-400 text-xs truncate">{selectedContact.status}</p>
+                                        </div>
+                                        <Phone className="w-5 h-5 text-blue-500" />
+                                    </div>
+
+                                    {/* Messages - iOS optimized scrolling */}
+                                    <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5" style={{ WebkitOverflowScrolling: 'touch' }}>
+                                        {chatHistory.map((msg, idx) => (
+                                            <motion.div
+                                                key={idx}
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: idx * 0.02 }}
+                                                className={`flex ${msg.from === 'tony' ? 'justify-end' : 'justify-start'}`}
+                                            >
+                                                <div
+                                                    className={`max-w-[80%] px-3 py-1.5 rounded-2xl text-[15px] leading-tight ${msg.from === 'tony'
+                                                        ? 'bg-blue-500 text-white rounded-br-md'
+                                                        : 'bg-gray-800 text-white rounded-bl-md'
+                                                        }`}
+                                                >
+                                                    <p className="break-words">{msg.text}</p>
+                                                    <p className={`text-[10px] mt-0.5 ${msg.from === 'tony' ? 'text-blue-200' : 'text-gray-500'}`}>
+                                                        {msg.time}
+                                                    </p>
+                                                </div>
+                                            </motion.div>
+                                        ))}
+
+                                        {/* Delivered status for last Tony message */}
+                                        {chatHistory.length > 0 && chatHistory[chatHistory.length - 1].from === 'tony' && (
+                                            <motion.div
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                className="flex justify-end pr-1 mt-0.5 mb-2"
+                                            >
+                                                <span className="text-[10px] text-gray-500 font-medium">Delivered</span>
+                                            </motion.div>
+                                        )}
+
+                                        {/* Typing Indicator */}
+                                        {isTyping && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className="flex justify-start"
+                                            >
+                                                <div className="bg-gray-800 px-4 py-2.5 rounded-2xl rounded-bl-md flex items-center gap-1">
+                                                    <motion.span
+                                                        animate={{ opacity: [0.4, 1, 0.4] }}
+                                                        transition={{ repeat: Infinity, duration: 1, delay: 0 }}
+                                                        className="w-2 h-2 bg-gray-400 rounded-full"
+                                                    />
+                                                    <motion.span
+                                                        animate={{ opacity: [0.4, 1, 0.4] }}
+                                                        transition={{ repeat: Infinity, duration: 1, delay: 0.2 }}
+                                                        className="w-2 h-2 bg-gray-400 rounded-full"
+                                                    />
+                                                    <motion.span
+                                                        animate={{ opacity: [0.4, 1, 0.4] }}
+                                                        transition={{ repeat: Infinity, duration: 1, delay: 0.4 }}
+                                                        className="w-2 h-2 bg-gray-400 rounded-full"
+                                                    />
+                                                </div>
+                                            </motion.div>
+                                        )}
+
+                                        <div ref={messagesEndRef} />
+                                    </div>
+
+                                    {/* Input - iOS keyboard optimized */}
+                                    <div className="px-3 py-2 border-t border-gray-800 pb-safe" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                value={inputMessage}
+                                                onChange={(e) => setInputMessage(e.target.value)}
+                                                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                                                onFocus={() => {
+                                                    // Scroll to bottom when keyboard appears
+                                                    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
+                                                }}
+                                                placeholder="Message..."
+                                                className="flex-1 bg-gray-800 text-white px-4 py-2.5 rounded-full text-[16px] outline-none focus:ring-2 focus:ring-blue-500"
+                                                style={{ fontSize: '16px' }} // Prevents iOS zoom on focus
+                                            />
+                                            <button
+                                                onClick={handleSend}
+                                                disabled={!inputMessage.trim() || chatMutation.isPending || isTyping}
+                                                className="p-2.5 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-full transition-colors touch-manipulation"
+                                            >
+                                                <Send className="w-4 h-4 text-white" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* Contact List (Messages App) */
+                                <div className="h-full flex flex-col">
+                                    <div className="px-4 py-3">
+                                        <h1 className="text-white text-2xl font-bold">Messages</h1>
+                                        <p className="text-gray-500 text-xs mt-1">Tony's iPhone • Mirrored</p>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto">
+                                        {/* Sort contacts by most recent message */}
+                                        {[...CONTACTS].sort((a, b) => {
+                                            const aTime = contactPreviews[a.id]?.timestamp || 0;
+                                            const bTime = contactPreviews[b.id]?.timestamp || 0;
+                                            return bTime - aTime; // Most recent first
+                                        }).map((contact, idx) => (
+                                            <motion.button
+                                                key={contact.id}
+                                                initial={{ opacity: 0, x: -20 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ delay: idx * 0.05 }}
+                                                onClick={() => setSelectedContact(contact)}
+                                                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-900 transition-colors border-b border-gray-800/50"
+                                            >
+                                                <div className={`w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br ${contact.color} flex-shrink-0 flex items-center justify-center`}>
+                                                    <img
+                                                        src={contact.avatarUrl}
+                                                        alt={contact.realName}
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                    />
+                                                </div>
+                                                <div className="flex-1 min-w-0 text-left">
+                                                    <p className="text-white font-semibold truncate">{contact.nickname}</p>
+                                                    <p className="text-gray-400 text-sm truncate">
+                                                        {contactPreviews[contact.id]?.text || contact.history[contact.history.length - 1].text}
+                                                    </p>
+                                                </div>
+                                                <div className="text-gray-500 text-xs flex-shrink-0">
+                                                    {contactPreviews[contact.id]?.time || contact.history[contact.history.length - 1].time}
+                                                </div>
+                                            </motion.button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Home Indicator */}
+                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-gray-600 rounded-full" />
+
+                        {/* Close Button */}
+                        <button
+                            onClick={onClose}
+                            className="absolute top-4 right-4 z-30 p-2 bg-red-500/20 hover:bg-red-500/40 rounded-full transition-colors"
+                        >
+                            <X className="w-4 h-4 text-red-400" />
+                        </button>
+                    </motion.div>
                 </motion.div>
-            </motion.div>
+            )}
         </AnimatePresence>
     );
 }
