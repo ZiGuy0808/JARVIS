@@ -473,13 +473,13 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
             // CRITICAL: Update the ref immediately when contact changes
             currentContactIdRef.current = selectedContact.id;
 
-            // Wait for query to complete before setting history
-            if (!historyLoading) {
-                // Use server history if available, otherwise use defaults
-                const historyToUse = serverHistory || [...selectedContact.history];
-                console.log(`[PHONE] Setting chat history: ${historyToUse.length} messages (from ${serverHistory ? 'server' : 'defaults'})`);
-                setChatHistory(historyToUse);
+            // Update history immediately (use defaults while server loads to prevent bleed)
+            const historyToUse = serverHistory || [...selectedContact.history];
+            // Only log if we have actual server data to avoid noise
+            if (serverHistory) {
+                console.log(`[PHONE] Updated chat history for ${selectedContact.id}`);
             }
+            setChatHistory(historyToUse);
 
             // Activate chat system
             chatActiveRef.current = true;
@@ -499,7 +499,7 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                 followUpTimerRef.current = null;
             }
         }
-    }, [selectedContact, serverHistory, historyLoading]);
+    }, [selectedContact, serverHistory]);
 
     // Scroll to bottom when messages change
     useEffect(() => {
