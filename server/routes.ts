@@ -738,20 +738,23 @@ ${behavior}
 CURRENT MOOD: You're feeling ${currentMood} right now.
 TIME CONTEXT: ${timeContext}
 
-RECENT CONVERSATION CONTEXT:
-${context || '(You were having a conversation but Tony stopped replying)'}
+*** IMPORTANT - RECENT CONVERSATION (you MUST reference this): ***
+${context || '(No recent conversation - start fresh)'}
+*** END CONVERSATION CONTEXT ***
 
 CREATIVE DIRECTION: ${styleHint}
 
-INSTRUCTIONS:
-- Generate 1-2 short follow-up messages that fit this character's personality AND current mood
-- Make it feel FRESH and UNIQUE - don't repeat the same phrases you've used before
-- Reference the conversation context or share something new
+CRITICAL INSTRUCTIONS:
+- Your follow-up MUST directly reference or continue the conversation above
+- If you were discussing something, follow up ON THAT TOPIC specifically
+- Example: If you asked about a mission, ask again or add more details about the mission
+- Example: If you were joking around, continue that joke or playful energy
+- If you shared something, react to Tony ignoring it
+- DO NOT send generic "are you there?" messages - BE SPECIFIC to your conversation
+- Generate 1-2 short follow-up messages (max 1-2 sentences each)
 - Stay completely in character for ${characterName}
-- Separate multiple messages with "|||"
-- Keep each message SHORT like real texts (max 1-2 sentences each)
 - Sound natural and human, not scripted
-- NEVER start with "Hey" or generic greetings - jump straight into the thought
+- Separate multiple messages with "|||"
 
 Generate the follow-up message(s) now:`;
 
