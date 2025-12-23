@@ -24,9 +24,55 @@ interface Notification {
 
 interface PhoneNotificationsProps {
     onOpenPhone: () => void;
+    onNotification?: (characterId: string, characterName: string, message: string) => void;
 }
 
-export function PhoneNotifications({ onOpenPhone }: PhoneNotificationsProps) {
+// Jarvis comments for different characters
+const JARVIS_COMMENTS: Record<string, string[]> = {
+    peter: [
+        "Sir, the kid has sent you another message. Would you like me to leave him on read?",
+        "Mr. Parker appears to be quite persistent, sir. Shall I compose a response?",
+        "The Spider-Child is texting again, sir. His enthusiasm is... relentless.",
+        "Sir, young Mr. Parker seems quite eager to reach you.",
+    ],
+    pepper: [
+        "Sir, Mrs. Stark has messaged you. I would recommend responding promptly.",
+        "A message from Ms. Potts, sir. Shall I remind you about any upcoming dinner reservations?",
+        "Sir, Pepper is reaching out. May I suggest not ignoring this one?",
+    ],
+    happy: [
+        "Mr. Hogan has sent a message, sir. He seems characteristically disgruntled.",
+        "Happy is texting, sir. I suspect it involves complaints about Mr. Parker.",
+        "Sir, your head of security wishes to speak with you.",
+    ],
+    fury: [
+        "Sir, Director Fury is attempting to reach you. He seems... impatient.",
+        "A message from SHIELD, sir. Director Fury does not appreciate being ignored.",
+        "Sir, I would advise responding to Director Fury. He has expressed... displeasure before.",
+    ],
+    rhodey: [
+        "Colonel Rhodes has messaged you, sir. Something about the Pentagon, I presume.",
+        "Sir, your platypus is calling. Shall I patch him through?",
+        "Rhodey is texting, sir. Perhaps another MIT story threat?",
+    ],
+    steve: [
+        "Captain Rogers has sent a message, sir. It appears to be quite formal.",
+        "Sir, the Captain wishes to speak with you. Shall I compose a response?",
+        "A message from Mr. Rogers, sir. He remains... principled as ever.",
+    ],
+    natasha: [
+        "Agent Romanoff has sent a brief message, sir. As cryptic as ever.",
+        "Sir, Ms. Romanoff is reaching out. I would not keep her waiting.",
+        "A message from Black Widow, sir. She rarely texts without purpose.",
+    ],
+    bruce: [
+        "Dr. Banner has messaged you, sir. Likely regarding lab results.",
+        "Sir, your science bro wishes to consult with you.",
+        "Bruce is texting, sir. He seems... relatively calm.",
+    ],
+};
+
+export function PhoneNotifications({ onOpenPhone, onNotification }: PhoneNotificationsProps) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [lastCheckTime, setLastCheckTime] = useState<Record<string, number>>({});
     const notificationTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -86,6 +132,13 @@ export function PhoneNotifications({ onOpenPhone }: PhoneNotificationsProps) {
                     return updated;
                 });
 
+                // Trigger Jarvis comment
+                if (onNotification) {
+                    const jarvisComments = JARVIS_COMMENTS[selectedId] || JARVIS_COMMENTS['peter'];
+                    const jarvisComment = jarvisComments[Math.floor(Math.random() * jarvisComments.length)];
+                    onNotification(selectedId, contact.realName, jarvisComment);
+                }
+
                 // Auto-dismiss after 10 seconds (except Spider-Man - 6 seconds bc he spams)
                 const dismissTime = selectedId === 'peter' ? 6000 : 10000;
                 setTimeout(() => {
@@ -95,7 +148,7 @@ export function PhoneNotifications({ onOpenPhone }: PhoneNotificationsProps) {
         } catch (error) {
             console.error('[NOTIFICATIONS] Failed to generate notification:', error);
         }
-    }, []);
+    }, [onNotification]);
 
     // Schedule next notification based on character spam levels
     const scheduleNextNotification = useCallback(() => {

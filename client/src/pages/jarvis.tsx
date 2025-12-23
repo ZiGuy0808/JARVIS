@@ -262,6 +262,22 @@ export default function JarvisPage() {
     chatMutation.mutate(text);
   };
 
+  // Handle phone notification - Jarvis comments on incoming texts
+  const handlePhoneNotification = useCallback((characterId: string, characterName: string, jarvisComment: string) => {
+    const assistantMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: jarvisComment,
+      timestamp: new Date(),
+      isTyping: true,
+    };
+    setMessages(prev => [...prev, assistantMessage]);
+    setIsSpeaking(true);
+
+    // Stop speaking animation after a bit
+    setTimeout(() => setIsSpeaking(false), 3000);
+  }, []);
+
   const handleTypingComplete = useCallback(() => {
     console.log('[CHAT DEBUG] 8. handleTypingComplete called');
     setMessages(prev => {
@@ -560,7 +576,10 @@ export default function JarvisPage() {
       </div>
 
       {/* Phone Notifications - Shows incoming texts on main screen */}
-      <PhoneNotifications onOpenPhone={() => setShowPhone(true)} />
+      <PhoneNotifications
+        onOpenPhone={() => setShowPhone(true)}
+        onNotification={handlePhoneNotification}
+      />
 
       {/* Phone Mirror Component - Rendered at root level for overlay */}
       <TonysPhoneMirror isOpen={showPhone} onClose={() => setShowPhone(false)} />

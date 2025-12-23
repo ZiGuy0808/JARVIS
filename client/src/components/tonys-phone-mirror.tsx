@@ -269,8 +269,8 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
     const chatActiveRef = useRef<boolean>(false);
     const messageCountRef = useRef<number>(0); // Track message count for realistic timing
 
-    // Track latest messages for each contact (for the list view)
-    const [contactPreviews, setContactPreviews] = useState<Record<string, { text: string; time: string }>>({});
+    // Track latest messages for each contact (for the list view) with timestamp for sorting
+    const [contactPreviews, setContactPreviews] = useState<Record<string, { text: string; time: string; timestamp: number }>>({});
 
     // Helper to send character messages with typing simulation
     const sendCharacterMessage = useCallback(async (characterId: string, messages: string[]) => {
@@ -311,7 +311,7 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
         if (!isOpen) return;
 
         const fetchAllPreviews = async () => {
-            const previews: Record<string, { text: string; time: string }> = {};
+            const previews: Record<string, { text: string; time: string; timestamp: number }> = {};
 
             for (const contact of CONTACTS) {
                 try {
@@ -319,7 +319,12 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                     const data = await res.json();
                     if (data.history?.length > 0) {
                         const lastMsg = data.history[data.history.length - 1];
-                        previews[contact.id] = { text: lastMsg.text, time: lastMsg.time };
+                        // Parse time to get relative sorting (use index as fallback timestamp)
+                        previews[contact.id] = {
+                            text: lastMsg.text,
+                            time: lastMsg.time,
+                            timestamp: Date.now() - (CONTACTS.length - CONTACTS.indexOf(contact)) * 60000
+                        };
                     }
                 } catch (e) {
                     // Fall back to default history
@@ -338,10 +343,58 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
             const lastMsg = chatHistory[chatHistory.length - 1];
             setContactPreviews(prev => ({
                 ...prev,
-                [selectedContact.id]: { text: lastMsg.text, time: lastMsg.time }
+                [selectedContact.id]: {
+                    text: lastMsg.text,
+                    time: lastMsg.time,
+                    timestamp: Date.now() // Current time for sorting
+                }
             }));
         }
     }, [chatHistory, selectedContact]);
+
+    // Track previous contact for save-on-leave
+    const previousContactRef = useRef<typeof CONTACTS[0] | null>(null);
+    const previousHistoryRef = useRef<{ from: string; text: string; time: string }[]>([]);
+
+    // Save chat history when leaving a contact or closing phone
+    useEffect(() => {
+        // If we had a previous contact and history, save it
+        if (previousContactRef.current && previousHistoryRef.current.length > 0) {
+            const contactToSave = previousContactRef.current;
+            const historyToSave = previousHistoryRef.current;
+
+            // Save asynchronously
+            fetch('/api/phone/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    characterId: contactToSave.id,
+                    messages: historyToSave
+                })
+            }).catch(e => console.error('[PHONE] Failed to save on leave:', e));
+        }
+
+        // Update refs for next change
+        previousContactRef.current = selectedContact;
+        previousHistoryRef.current = chatHistory;
+    }, [selectedContact]);
+
+    // Also save when phone closes
+    useEffect(() => {
+        if (!isOpen && previousContactRef.current && previousHistoryRef.current.length > 0) {
+            const contactToSave = previousContactRef.current;
+            const historyToSave = previousHistoryRef.current;
+
+            fetch('/api/phone/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    characterId: contactToSave.id,
+                    messages: historyToSave
+                })
+            }).catch(e => console.error('[PHONE] Failed to save on close:', e));
+        }
+    }, [isOpen]);
 
     // Clean up timers on unmount or contact change
     useEffect(() => {
@@ -794,7 +847,12 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                                 </div>
 
                                 <div className="flex-1 overflow-y-auto">
-                                    {CONTACTS.map((contact, idx) => (
+                                    {/* Sort contacts by most recent message */}
+                                    {[...CONTACTS].sort((a, b) => {
+                                        const aTime = contactPreviews[a.id]?.timestamp || 0;
+                                        const bTime = contactPreviews[b.id]?.timestamp || 0;
+                                        return bTime - aTime; // Most recent first
+                                    }).map((contact, idx) => (
                                         <motion.button
                                             key={contact.id}
                                             initial={{ opacity: 0, x: -20 }}
