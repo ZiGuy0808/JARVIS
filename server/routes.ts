@@ -699,24 +699,59 @@ Keep messages SHORT and realistic like actual texts.`;
       };
 
       const behavior = followUpBehavior[characterId] || followUpBehavior['peter'];
-      const timeDescription = timeSinceLastReply > 120 ? "several minutes" : timeSinceLastReply > 60 ? "about a minute" : "a little while";
 
-      const fullPrompt = `You are ${characterName} from the Marvel Cinematic Universe. Tony Stark hasn't replied to your texts for ${timeDescription}. Generate a natural follow-up message or messages that ${characterName} would send.
+      // Dynamic elements to make each message unique
+      const moods = ['curious', 'slightly anxious', 'playfully annoyed', 'genuinely concerned', 'casual', 'impatient'];
+      const currentMood = moods[Math.floor(Math.random() * moods.length)];
+
+      // Time of day awareness
+      const hour = new Date().getHours();
+      let timeContext = '';
+      if (hour < 6) timeContext = "It's very late/early - maybe Tony fell asleep?";
+      else if (hour < 12) timeContext = "It's morning - maybe Tony is still in bed or already busy.";
+      else if (hour < 17) timeContext = "It's afternoon - Tony might be in meetings or the lab.";
+      else if (hour < 21) timeContext = "It's evening - Maybe Tony is having dinner or with Pepper?";
+      else timeContext = "It's late night - Tony is probably tinkering in the lab.";
+
+      // Time since last reply description
+      const timeDescription = timeSinceLastReply > 300 ? "several minutes" :
+        timeSinceLastReply > 120 ? "a couple minutes" :
+          timeSinceLastReply > 60 ? "about a minute" : "just a moment";
+
+      // Random message style variations
+      const styleVariations = [
+        "This time, maybe reference something from your shared history or inside jokes.",
+        "This time, ask a question to prompt a response.",
+        "This time, share a quick update or thought to re-engage.",
+        "This time, use humor to get attention.",
+        "This time, be more direct about wanting a response.",
+        "This time, mention something happening in your day.",
+        "This time, express a fleeting emotion or reaction.",
+      ];
+      const styleHint = styleVariations[Math.floor(Math.random() * styleVariations.length)];
+
+      const fullPrompt = `You are ${characterName} from the Marvel Cinematic Universe. Tony Stark hasn't replied to your texts for ${timeDescription}. Generate a natural follow-up message that ${characterName} would send.
 
 CHARACTER BEHAVIOR:
 ${behavior}
 
+CURRENT MOOD: You're feeling ${currentMood} right now.
+TIME CONTEXT: ${timeContext}
+
 RECENT CONVERSATION CONTEXT:
 ${context || '(You were having a conversation but Tony stopped replying)'}
 
+CREATIVE DIRECTION: ${styleHint}
+
 INSTRUCTIONS:
-- Generate 1-3 short follow-up messages that fit this character's personality
-- These should feel like natural "checking in" or "are you there?" type messages
-- Reference the conversation context if relevant
-- Stay completely in character
+- Generate 1-2 short follow-up messages that fit this character's personality AND current mood
+- Make it feel FRESH and UNIQUE - don't repeat the same phrases you've used before
+- Reference the conversation context or share something new
+- Stay completely in character for ${characterName}
 - Separate multiple messages with "|||"
-- Keep each message SHORT like real texts
-- Sound natural and conversational, not robotic
+- Keep each message SHORT like real texts (max 1-2 sentences each)
+- Sound natural and human, not scripted
+- NEVER start with "Hey" or generic greetings - jump straight into the thought
 
 Generate the follow-up message(s) now:`;
 
