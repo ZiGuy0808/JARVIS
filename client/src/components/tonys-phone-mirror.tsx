@@ -700,12 +700,25 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
         // Track when Tony last sent a message
         lastTonyMessageRef.current = Date.now();
 
-        // Add Tony's message
-        setChatHistory(prev => [...prev, {
+        const newMessage = {
             from: 'tony',
             text: inputMessage,
             time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-        }]);
+        };
+
+        // Add Tony's message
+        setChatHistory(prev => {
+            const updated = [...prev, newMessage];
+            // Immediately save to server
+            if (selectedContact) {
+                fetch('/api/phone/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ characterId: selectedContact.id, messages: updated })
+                }).catch(e => console.error('[PHONE] Save failed:', e));
+            }
+            return updated;
+        });
 
         // Send to AI
         chatMutation.mutate(inputMessage);
@@ -722,13 +735,14 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
             >
-                {/* iPhone Container */}
+                {/* iPhone Container - Responsive for actual iPhones */}
                 <motion.div
                     initial={{ scale: 0.8, y: 50 }}
                     animate={{ scale: 1, y: 0 }}
                     exit={{ scale: 0.8, y: 50 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="relative w-full max-w-[375px] h-[700px] bg-black rounded-[40px] border-4 border-gray-800 shadow-2xl overflow-hidden"
+                    className="relative w-full max-w-[375px] h-[90vh] max-h-[750px] bg-black rounded-[40px] md:rounded-[40px] border-4 border-gray-800 shadow-2xl overflow-hidden"
+                    style={{ maxHeight: 'min(750px, calc(100vh - 40px))' }}
                 >
                     {/* Notch */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-black rounded-b-2xl z-20" />
@@ -791,8 +805,8 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                                     <Phone className="w-5 h-5 text-blue-500" />
                                 </div>
 
-                                {/* Messages */}
-                                <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+                                {/* Messages - iOS optimized scrolling */}
+                                <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5" style={{ WebkitOverflowScrolling: 'touch' }}>
                                     {chatHistory.map((msg, idx) => (
                                         <motion.div
                                             key={idx}
@@ -802,13 +816,13 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                                             className={`flex ${msg.from === 'tony' ? 'justify-end' : 'justify-start'}`}
                                         >
                                             <div
-                                                className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm ${msg.from === 'tony'
+                                                className={`max-w-[80%] px-3 py-1.5 rounded-2xl text-[15px] leading-tight ${msg.from === 'tony'
                                                     ? 'bg-blue-500 text-white rounded-br-md'
                                                     : 'bg-gray-800 text-white rounded-bl-md'
                                                     }`}
                                             >
-                                                <p>{msg.text}</p>
-                                                <p className={`text-[10px] mt-1 ${msg.from === 'tony' ? 'text-blue-200' : 'text-gray-500'}`}>
+                                                <p className="break-words">{msg.text}</p>
+                                                <p className={`text-[10px] mt-0.5 ${msg.from === 'tony' ? 'text-blue-200' : 'text-gray-500'}`}>
                                                     {msg.time}
                                                 </p>
                                             </div>
@@ -817,21 +831,26 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                                     <div ref={messagesEndRef} />
                                 </div>
 
-                                {/* Input */}
-                                <div className="px-4 py-3 border-t border-gray-800">
+                                {/* Input - iOS keyboard optimized */}
+                                <div className="px-3 py-2 border-t border-gray-800 pb-safe" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
                                     <div className="flex items-center gap-2">
                                         <input
                                             type="text"
                                             value={inputMessage}
                                             onChange={(e) => setInputMessage(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                                            onFocus={() => {
+                                                // Scroll to bottom when keyboard appears
+                                                setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
+                                            }}
                                             placeholder="Message..."
-                                            className="flex-1 bg-gray-800 text-white px-4 py-2 rounded-full text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                            className="flex-1 bg-gray-800 text-white px-4 py-2.5 rounded-full text-[16px] outline-none focus:ring-2 focus:ring-blue-500"
+                                            style={{ fontSize: '16px' }} // Prevents iOS zoom on focus
                                         />
                                         <button
                                             onClick={handleSend}
                                             disabled={!inputMessage.trim() || chatMutation.isPending || isTyping}
-                                            className="p-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-full transition-colors"
+                                            className="p-2.5 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-full transition-colors touch-manipulation"
                                         >
                                             <Send className="w-4 h-4 text-white" />
                                         </button>
