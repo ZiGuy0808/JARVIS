@@ -395,7 +395,7 @@ Requirements:
 
       return {
         id: newId,
-        question: `🔥 AI SEARCH (${targetDifficulty}/10): ${question}`,
+        question: `🔥 JARVIS SCAN (${targetDifficulty}/10): ${question}`,
         options: shuffled,
         correct: correctIndex,
         difficulty: targetDifficulty,

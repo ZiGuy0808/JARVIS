@@ -293,7 +293,7 @@ export default function QuizPage() {
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <CardTitle className="text-2xl font-orbitron mb-2">
+                  <CardTitle className="text-xl md:text-2xl font-orbitron mb-2 leading-relaxed">
                     {currentQuestion.question}
                   </CardTitle>
                   <div className="flex gap-2">
@@ -329,11 +329,11 @@ export default function QuizPage() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className={`w-full p-4 rounded-lg border-2 transition-all text-left font-rajdhani ${selectedAnswer === index
-                        ? answerCorrect
-                          ? 'border-green-500/80 bg-green-500/10'
-                          : 'border-red-500/80 bg-red-500/10'
-                        : 'border-primary/30 hover:border-primary/60 bg-primary/5'
+                    className={`w-full p-3 md:p-4 rounded-lg border-2 transition-all text-left font-rajdhani ${selectedAnswer === index
+                      ? answerCorrect
+                        ? 'border-green-500/80 bg-green-500/10'
+                        : 'border-red-500/80 bg-red-500/10'
+                      : 'border-primary/30 hover:border-primary/60 bg-primary/5'
                       } ${showExplanation ? 'cursor-not-allowed' : 'cursor-pointer hover-elevate'}`}
                     data-testid={`button-answer-${index}`}
                     whileHover={!showExplanation ? { scale: 1.02 } : {}}
@@ -342,15 +342,15 @@ export default function QuizPage() {
                     <div className="flex items-center gap-3">
                       <motion.div
                         className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${selectedAnswer === index
-                            ? answerCorrect
-                              ? 'bg-green-500/30'
-                              : 'bg-red-500/30'
-                            : 'bg-primary/20'
+                          ? answerCorrect
+                            ? 'bg-green-500/30'
+                            : 'bg-red-500/30'
+                          : 'bg-primary/20'
                           }`}
                       >
                         {String.fromCharCode(65 + index)}
                       </motion.div>
-                      <span className="flex-1">{option}</span>
+                      <span className="flex-1 text-sm md:text-base leading-snug">{option}</span>
                       {selectedAnswer === index && showExplanation && (
                         <motion.div
                           initial={{ scale: 0 }}
@@ -588,11 +588,11 @@ export default function QuizPage() {
               />
             </div>
             <motion.p
-              className="text-2xl font-orbitron mt-4 text-cyan-400"
+              className="text-lg md:text-2xl font-orbitron mt-4 text-cyan-400"
               animate={{ opacity: [1, 0.5, 1] }}
               transition={{ duration: 1, repeat: Infinity }}
             >
-              🔍 JARVIS SEARCHING THE WEB...
+              🔍 SEARCHING STARK DATABASE...
             </motion.p>
             <p className="text-muted-foreground mt-2">Finding an extremely hard question just for you...</p>
             <motion.div
