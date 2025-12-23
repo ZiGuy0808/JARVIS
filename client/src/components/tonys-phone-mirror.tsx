@@ -5,15 +5,15 @@ import { apiRequest } from '@/lib/queryClient';
 import { X, ChevronLeft, Send, Phone, Signal, Wifi, Battery } from 'lucide-react';
 
 // Character data with Tony's nicknames and personalities
+// Using real Marvel movie images
 const CONTACTS = [
     {
         id: 'pepper',
         nickname: 'Pep ❤️',
         realName: 'Pepper Potts',
-        avatar: '👩‍💼',
+        avatarUrl: 'https://i.imgur.com/DwYkMdJ.jpg', // Pepper Potts
         status: 'CEO, Stark Industries',
         color: 'from-orange-500 to-red-500',
-        // Pre-loaded chat history showing their relationship
         history: [
             { from: 'pepper', text: "Tony, you missed the board meeting. Again.", time: '9:14 AM' },
             { from: 'tony', text: "In my defense, I was saving the world.", time: '9:15 AM' },
@@ -30,10 +30,9 @@ const CONTACTS = [
         id: 'peter',
         nickname: 'Underoos 🕷️',
         realName: 'Peter Parker',
-        avatar: '🕷️',
+        avatarUrl: 'https://i.imgur.com/vxPOHvT.jpg', // Tom Holland Spider-Man
         status: 'Friendly Neighborhood...',
         color: 'from-red-500 to-blue-600',
-        // Spider-Man SPAMS like in the movies - lots of rapid messages
         history: [
             { from: 'peter', text: "Mr. Stark!!", time: '3:42 PM' },
             { from: 'peter', text: "Mr. Stark are you there??", time: '3:42 PM' },
@@ -65,7 +64,7 @@ const CONTACTS = [
         id: 'happy',
         nickname: 'Hap 🥊',
         realName: 'Happy Hogan',
-        avatar: '🥊',
+        avatarUrl: 'https://i.imgur.com/K8qSRxN.jpg', // Jon Favreau
         status: 'Head of Security',
         color: 'from-amber-600 to-amber-800',
         history: [
@@ -90,7 +89,7 @@ const CONTACTS = [
         id: 'steve',
         nickname: 'Capsicle 🧊',
         realName: 'Steve Rogers',
-        avatar: '�️',
+        avatarUrl: 'https://i.imgur.com/mVZ7B8M.jpg', // Chris Evans Cap
         status: 'Star Spangled Man',
         color: 'from-blue-600 to-red-500',
         history: [
@@ -114,7 +113,7 @@ const CONTACTS = [
         id: 'rhodey',
         nickname: 'Rhodey 🎖️',
         realName: 'James Rhodes',
-        avatar: '🎖️',
+        avatarUrl: 'https://i.imgur.com/JxMmLEJ.jpg', // Don Cheadle War Machine
         status: 'War Machine Online',
         color: 'from-gray-600 to-gray-800',
         history: [
@@ -138,7 +137,7 @@ const CONTACTS = [
         id: 'natasha',
         nickname: 'Nat 🕷️',
         realName: 'Natasha Romanoff',
-        avatar: '💃',
+        avatarUrl: 'https://i.imgur.com/0xqFqYx.jpg', // Scarlett Johansson Black Widow
         status: 'SHIELD Agent (Level 7)',
         color: 'from-gray-800 to-red-900',
         history: [
@@ -156,7 +155,7 @@ const CONTACTS = [
         id: 'fury',
         nickname: 'Pirate 👁️',
         realName: 'Nick Fury',
-        avatar: '🦅',
+        avatarUrl: 'https://i.imgur.com/WTZCbZk.jpg', // Samuel L Jackson
         status: 'Director of SHIELD',
         color: 'from-gray-900 to-black',
         history: [
@@ -176,7 +175,7 @@ const CONTACTS = [
         id: 'bruce',
         nickname: 'Science Bro 🧬',
         realName: 'Bruce Banner',
-        avatar: '🧬',
+        avatarUrl: 'https://i.imgur.com/YZNVxCl.jpg', // Mark Ruffalo Hulk
         status: 'Gamma Lab',
         color: 'from-green-600 to-green-800',
         history: [
@@ -369,8 +368,8 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                                     >
                                         <ChevronLeft className="w-6 h-6 text-blue-500" />
                                     </button>
-                                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${selectedContact.color} flex items-center justify-center text-xl`}>
-                                        {selectedContact.avatar}
+                                    <div className={`w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br ${selectedContact.color} flex-shrink-0`}>
+                                        <img src={selectedContact.avatarUrl} alt={selectedContact.realName} className="w-full h-full object-cover" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-white font-semibold truncate">{selectedContact.nickname}</p>
@@ -459,8 +458,8 @@ export function TonysPhoneMirror({ isOpen, onClose }: PhoneMirrorProps) {
                                             onClick={() => setSelectedContact(contact)}
                                             className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-900 transition-colors border-b border-gray-800/50"
                                         >
-                                            <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${contact.color} flex items-center justify-center text-2xl flex-shrink-0`}>
-                                                {contact.avatar}
+                                            <div className={`w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br ${contact.color} flex-shrink-0`}>
+                                                <img src={contact.avatarUrl} alt={contact.realName} className="w-full h-full object-cover" />
                                             </div>
                                             <div className="flex-1 min-w-0 text-left">
                                                 <p className="text-white font-semibold truncate">{contact.nickname}</p>
