@@ -11,7 +11,7 @@ const CONTACTS = [
         id: 'pepper',
         nickname: 'Pep ❤️',
         realName: 'Pepper Potts',
-        avatarUrl: 'https://i.imgur.com/DwYkMdJ.jpg', // Pepper Potts
+        avatarUrl: '/api/assets/profile_pictures/pepper.png',
         status: 'CEO, Stark Industries',
         color: 'from-orange-500 to-red-500',
         history: [
@@ -30,7 +30,7 @@ const CONTACTS = [
         id: 'peter',
         nickname: 'Underoos 🕷️',
         realName: 'Peter Parker',
-        avatarUrl: 'https://i.imgur.com/vxPOHvT.jpg', // Tom Holland Spider-Man
+        avatarUrl: '/api/assets/profile_pictures/peter.png',
         status: 'Friendly Neighborhood...',
         color: 'from-red-500 to-blue-600',
         history: [
@@ -64,7 +64,7 @@ const CONTACTS = [
         id: 'happy',
         nickname: 'Hap 🥊',
         realName: 'Happy Hogan',
-        avatarUrl: 'https://i.imgur.com/K8qSRxN.jpg', // Jon Favreau
+        avatarUrl: '/api/assets/profile_pictures/happy.png',
         status: 'Head of Security',
         color: 'from-amber-600 to-amber-800',
         history: [
@@ -113,7 +113,7 @@ const CONTACTS = [
         id: 'rhodey',
         nickname: 'Rhodey 🎖️',
         realName: 'James Rhodes',
-        avatarUrl: 'https://i.imgur.com/JxMmLEJ.jpg', // Don Cheadle War Machine
+        avatarUrl: '/api/assets/profile_pictures/rhodey.png',
         status: 'War Machine Online',
         color: 'from-gray-600 to-gray-800',
         history: [
@@ -175,7 +175,7 @@ const CONTACTS = [
         id: 'bruce',
         nickname: 'Science Bro 🧬',
         realName: 'Bruce Banner',
-        avatarUrl: 'https://i.imgur.com/YZNVxCl.jpg', // Mark Ruffalo Hulk
+        avatarUrl: '/api/assets/profile_pictures/bruce.png',
         status: 'Gamma Lab',
         color: 'from-green-600 to-green-800',
         history: [

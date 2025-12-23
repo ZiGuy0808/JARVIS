@@ -463,6 +463,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Serve profile pictures for phone contacts
+  app.get("/api/assets/profile_pictures/:filename", (req, res) => {
+    try {
+      const filename = req.params.filename;
+      if (!/^[a-zA-Z0-9_\-\.]+$/.test(filename)) {
+        return res.status(400).json({ error: 'Invalid filename' });
+      }
+
+      const imagePath = path.join(process.cwd(), 'attached_assets/profile_pictures', filename);
+
+      if (!fs.existsSync(imagePath)) {
+        console.log(`Profile picture not found: ${imagePath}`);
+        return res.status(404).json({ error: 'Profile picture not found' });
+      }
+
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
+      res.sendFile(imagePath);
+    } catch (error) {
+      console.error('Profile picture serving error:', error);
+      res.status(500).json({ error: 'Failed to serve profile picture' });
+    }
+  });
+
   // Phone Mirror - In-memory chat history storage (persists until server restart)
   const phoneChatHistory: Record<string, { from: string; text: string; time: string }[]> = {};
 
