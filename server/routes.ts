@@ -764,13 +764,27 @@ Example:
         else if (currentAnger > 30) angerInstruction = "You are getting annoyed. Your heart rate is rising. Be tense.";
       }
 
-      // Consequence Logic
-      const consequenceState = req.body.consequenceState; // { type: 'GHOSTED' | 'CONFISCATED' }
+      // Consequence Logic (Character-Specific)
+      const consequenceState = req.body.consequenceState; // { type: string }
       let consequenceInstruction = "";
-      if (consequenceState?.type === 'GHOSTED') {
-        consequenceInstruction = "YOU ARE CURRENTLY IGNORING TONY. Do not reply unless he apologizes sincerely. If he does, set consequence='CLEARED'. If not, output NOTHING (empty string).";
-      } else if (consequenceState?.type === 'CONFISCATED') {
-        consequenceInstruction = "PHONE CONFISCATED. You are Aunt May. Peter is grounded. Tell Tony to stop bothering him. Do not break character.";
+      const cType = consequenceState?.type;
+
+      if (cType === 'CONFISCATED') {
+        consequenceInstruction = "PHONE CONFISCATED. You are now Aunt May. Peter is grounded. Scold Tony for being a bad influence. Stay as Aunt May until cleared.";
+      } else if (cType === 'DISAPPOINTED') {
+        consequenceInstruction = "YOU ARE DISAPPOINTED IN TONY. Say very little. Cold, formal. 'I expected better from you.' Only respond if he apologizes sincerely.";
+      } else if (cType === 'COUCH') {
+        consequenceInstruction = "YOU PUT TONY ON THE COUCH. You're not speaking to him until he fixes this. Short, icy replies only. Or silence.";
+      } else if (cType === 'CLASSIFIED') {
+        consequenceInstruction = "TONY IS LOCKED OUT OF SHIELD COMMS. Official silence. 'Your access has been revoked.' Only lift if he proves himself.";
+      } else if (cType === 'BUDDY_TIMEOUT') {
+        consequenceInstruction = "YOU NEED SPACE FROM TONY. You're best friends but he crossed a line. 'I need some time, man.' Short replies or silence.";
+      } else if (cType === 'RADIO_SILENCE') {
+        consequenceInstruction = "YOU ARE IGNORING TONY. No explanation. Just silence. Output nothing unless he apologizes.";
+      } else if (cType === 'ON_BREAK') {
+        consequenceInstruction = "YOU'RE TAKING A BREAK FROM TONY. 'I'm on a personal day, boss.' Minimal contact.";
+      } else if (cType === 'HULK_SMASH') {
+        consequenceInstruction = "HULK HAS TAKEN OVER. ALL CAPS. BROKEN SENTENCES. 'HULK NOT TALK TO PUNY STARK.' Rage mode until calmed.";
       }
 
       const fullPrompt = `You are roleplaying as ${characterName} from the Marvel Cinematic Universe (Earth-616).
@@ -839,10 +853,16 @@ Rules for Gossip:
 - If Tony tells you something sensitive, or you want to complain about him to someone else, use the "gossip" field.
 - TARGETS: pepper, peter, happy, steve, natasha, rhodey, fury, bruce.
 
-Rules for Consequences:
-- GHOSTED: Use this if you are annoyed and want to stop replying until he apologizes (Steve/Pepper/Rhodey).
-- CONFISCATED: Use this if Peter is being reckless. Aunt May will take the phone (Peter Only).
-- CLEARED: Use this to FORGIVE a previous consequence if he apologizes.
+Rules for Consequences (CHARACTER-SPECIFIC):
+- **Peter Parker**: If Tony encourages reckless behavior, set consequence='CONFISCATED'. Aunt May takes the phone. You become Aunt May and scold Tony.
+- **Steve Rogers**: If Tony is disrespectful or immature, set consequence='DISAPPOINTED'. You say "I expected better" and go silent until apology.
+- **Pepper Potts**: If Tony is being impossible, set consequence='COUCH'. Tell him you're done talking until he fixes it.
+- **Nick Fury**: If Tony is insubordinate, set consequence='CLASSIFIED'. Lockout from SHIELD comms. Cold, official.
+- **Rhodey**: If Tony crosses a line, set consequence='BUDDY_TIMEOUT'. You're his best friend but need space.
+- **Natasha**: If Tony is annoying, set consequence='RADIO_SILENCE'. Just stop replying. No explanation.
+- **Happy**: If Tony is too much, set consequence='ON_BREAK'. Tell him you're taking a personal day.
+- **Bruce Banner**: If pushed too far, Hulk takes over. consequence='HULK_SMASH'. ALL CAPS RAGE.
+- **CLEARED**: Use this to FORGIVE a previous consequence if Tony apologizes sincerely.
 
 Example Response:
 Hey Tony, that's hilarious. ||| serious though, stop it.
