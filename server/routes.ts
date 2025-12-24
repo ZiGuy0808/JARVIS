@@ -764,6 +764,15 @@ Example:
         else if (currentAnger > 30) angerInstruction = "You are getting annoyed. Your heart rate is rising. Be tense.";
       }
 
+      // Consequence Logic
+      const consequenceState = req.body.consequenceState; // { type: 'GHOSTED' | 'CONFISCATED' }
+      let consequenceInstruction = "";
+      if (consequenceState?.type === 'GHOSTED') {
+        consequenceInstruction = "YOU ARE CURRENTLY IGNORING TONY. Do not reply unless he apologizes sincerely. If he does, set consequence='CLEARED'. If not, output NOTHING (empty string).";
+      } else if (consequenceState?.type === 'CONFISCATED') {
+        consequenceInstruction = "PHONE CONFISCATED. You are Aunt May. Peter is grounded. Tell Tony to stop bothering him. Do not break character.";
+      }
+
       const fullPrompt = `You are roleplaying as ${characterName} from the Marvel Cinematic Universe (Earth-616).
 You are purely ${characterName}, texting TONY STARK (Iron Man).
 
@@ -778,6 +787,7 @@ You are purely ${characterName}, texting TONY STARK (Iron Man).
    - **CURRENT SCORE**: ${currentRelationshipScore}/100
    - **YOUR ATTITUDE**: ${relationshipStatus}
    ${angerInstruction ? `- **ANGER STATE**: ${angerInstruction}` : ''}
+   ${consequenceInstruction ? `- **CONSEQUENCE STATE**: ${consequenceInstruction}` : ''}
 ${gossipContext}
 
 *** VISUAL CONTEXT ***
@@ -812,7 +822,8 @@ Format:
 {
   "relationship_delta": -5 to +5,
   "anger_delta": 0 to 20,
-  "gossip": { "target": "pepper|rhodey|etc", "content": "What to tell them" } (OPTIONAL - only if you want to tell someone else)
+  "gossip": { "target": "pepper|rhodey|etc", "content": "What to tell them" }, (OPTIONAL)
+  "consequence": "GHOSTED" | "CONFISCATED" | "CLEARED" | null, (OPTIONAL - trigger punishment)
   "reason": "Brief reason for scores"
 }
 </METRICS>
@@ -827,6 +838,11 @@ Rules for Scoring:
 Rules for Gossip:
 - If Tony tells you something sensitive, or you want to complain about him to someone else, use the "gossip" field.
 - TARGETS: pepper, peter, happy, steve, natasha, rhodey, fury, bruce.
+
+Rules for Consequences:
+- GHOSTED: Use this if you are annoyed and want to stop replying until he apologizes (Steve/Pepper/Rhodey).
+- CONFISCATED: Use this if Peter is being reckless. Aunt May will take the phone (Peter Only).
+- CLEARED: Use this to FORGIVE a previous consequence if he apologizes.
 
 Example Response:
 Hey Tony, that's hilarious. ||| serious though, stop it.
@@ -844,7 +860,12 @@ Hey Tony, that's hilarious. ||| serious though, stop it.
 
       // Parse Metrics Block
       let finalResponse = response;
-      let aiMetrics: { relationship_delta: number; anger_delta: number; gossip?: { target: string; content: string } } = { relationship_delta: 0, anger_delta: 0 };
+      let aiMetrics: {
+        relationship_delta: number;
+        anger_delta: number;
+        gossip?: { target: string; content: string };
+        consequence?: string | null;
+      } = { relationship_delta: 0, anger_delta: 0 };
 
       // Extract JSON metrics if present
       const metricsMatch = response.match(/<METRICS>([\s\S]*?)<\/METRICS>/);
@@ -854,6 +875,8 @@ Hey Tony, that's hilarious. ||| serious though, stop it.
           aiMetrics.relationship_delta = parsed.relationship_delta || 0;
           aiMetrics.anger_delta = parsed.anger_delta || 0;
           if (parsed.gossip) aiMetrics.gossip = parsed.gossip;
+          if (parsed.consequence !== undefined) aiMetrics.consequence = parsed.consequence;
+
           // Remove the block from the visible text
           finalResponse = response.replace(/<METRICS>[\s\S]*?<\/METRICS>/, '').trim();
         } catch (e) {
@@ -1008,6 +1031,7 @@ Hey Tony, that's hilarious. ||| serious though, stop it.
         originalResponse: finalResponse,
         relationshipDelta: finalRelationshipDelta,
         angerDelta: finalAngerDelta,
+        consequence: aiMetrics.consequence,
         detectedMood: regexSentiment.detectedMood
       });
     } catch (error) {

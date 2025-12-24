@@ -386,6 +386,19 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
         }
     }, [hulkOutState]);
 
+    // State to track punishments/consequences (Ghosting, Confiscation)
+    const [consequenceStates, setConsequenceStates] = useState<Record<string, { type: string, until?: number }>>(() => {
+        try {
+            const saved = localStorage.getItem('jarvis-phone-consequences');
+            return saved ? JSON.parse(saved) : {};
+        } catch { return {}; }
+    });
+
+    // Persist consequences
+    useEffect(() => {
+        localStorage.setItem('jarvis-phone-consequences', JSON.stringify(consequenceStates));
+    }, [consequenceStates]);
+
     // Trigger Hulk-out sequence
     const triggerHulkOut = useCallback(() => {
         console.log('[PHONE] 💥 HULK OUT TRIGGERED!');
@@ -721,7 +734,9 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                 // Send anger level (for Bruce context in Group Chat)
                 angerLevel: originalContactId === 'avengers'
                     ? angerLevels
-                    : (originalContactId === 'bruce' ? (angerLevels?.bruce || 0) : 0)
+                    : (originalContactId === 'bruce' ? (angerLevels?.bruce || 0) : 0),
+                // Send consequence state so autonomous chatter respects it
+                consequenceState: originalContactId ? consequenceStates[originalContactId] : undefined
             });
 
             // VALIDATE AGAIN: Check contact hasn't changed after API call
@@ -835,7 +850,9 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                 // Send anger level (for Bruce context in Group Chat)
                 angerLevel: originalContactId === 'avengers'
                     ? angerLevels
-                    : (originalContactId === 'bruce' ? (angerLevels?.bruce || 0) : 0)
+                    : (originalContactId === 'bruce' ? (angerLevels?.bruce || 0) : 0),
+                // Send consequence state (Ghosted/Confiscated)
+                consequenceState: originalContactId ? consequenceStates[originalContactId] : undefined
             });
 
             // Return the response WITH the original contact info for proper handling
@@ -881,6 +898,29 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
 
                     return { ...prev, bruce: newAnger };
                 });
+            }
+
+            // Update consequence state (Ghosting/Confiscation)
+            if (data.consequence) {
+                if (data.consequence === 'CLEARED') {
+                    setConsequenceStates(prev => {
+                        const newState = { ...prev };
+                        delete newState[originalContactId];
+                        return newState;
+                    });
+                    console.log(`[PHONE] ✅ Consequence CLEARED for ${originalContactName}`);
+                } else {
+                    // Set punishment
+                    const duration = data.consequence === 'CONFISCATED' ? 10 * 60 * 1000 : 0; // 10 mins for confiscation
+                    setConsequenceStates(prev => ({
+                        ...prev,
+                        [originalContactId]: {
+                            type: data.consequence,
+                            until: duration > 0 ? Date.now() + duration : undefined
+                        }
+                    }));
+                    console.log(`[PHONE] ⚠️ Consequence APPLIED for ${originalContactName}: ${data.consequence}`);
+                }
             }
             // ========== END NEW ==========
 
