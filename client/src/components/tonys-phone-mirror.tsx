@@ -706,8 +706,8 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
         console.log(`[PHONE] ${originalContactName} is checking in (AI-generated)...`);
 
         try {
-            // Generate AI follow-up based on conversation context
-            const context = chatHistory.slice(-50).map(m =>
+            // Generate AI follow-up based on conversation context (Boosted to 200 messages for deep context)
+            const context = chatHistory.slice(-200).map(m =>
                 `${m.from === 'tony' ? 'Tony' : originalContactName}: ${m.text}`
             ).join('\n');
 
@@ -822,7 +822,7 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                 characterId: originalContactId,
                 characterName: originalContactName,
                 message,
-                context: currentHistory.slice(-50).map(m => `${m.from === 'tony' ? 'Tony' : originalContactName}: ${m.text}`).join('\n'),
+                context: currentHistory.slice(-200).map(m => `${m.from === 'tony' ? 'Tony' : originalContactName}: ${m.text}`).join('\n'),
                 // Send current relationship level so AI knows how to act
                 // For Avengers group chat, send the entire object so 'Hive Mind' works
                 relationshipLevel: originalContactId === 'avengers'
