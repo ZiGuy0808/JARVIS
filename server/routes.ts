@@ -658,7 +658,38 @@ Write your reply.
       // Parse response for multiple messages
       const messages = response.split('|||').map(m => m.trim()).filter(m => m.length > 0);
 
-      res.json({ messages });
+      // Analyze sentiment of Tony's message for relationship/anger tracking
+      const { analyzeSentiment } = await import('./lib/sentiment');
+      const sentiment = analyzeSentiment(message, characterId);
+
+      // For Bruce, check if this would trigger Hulk-out
+      // Client tracks cumulative anger, server just provides delta
+      let hulkOut = false;
+      let hulkResponse = '';
+
+      if (characterId === 'bruce' && sentiment.angerDelta > 15) {
+        // High anger spike - maybe add warning to response
+        const warningPhrases = [
+          "Tony... I'm trying to stay calm here.",
+          "You need to stop. I can feel him stirring.",
+          "Tony... please. You know what happens when I get angry.",
+          "The other guy is listening. Be careful.",
+          "I'm warning you, Tony. Don't push this."
+        ];
+
+        // 50% chance to add warning if anger spike is high
+        if (Math.random() > 0.5) {
+          messages.push(warningPhrases[Math.floor(Math.random() * warningPhrases.length)]);
+        }
+      }
+
+      res.json({
+        messages,
+        angerDelta: sentiment.angerDelta,
+        relationshipDelta: sentiment.relationshipDelta,
+        detectedMood: sentiment.detectedMood,
+        hulkOut
+      });
     } catch (error) {
       console.error('Phone chat error:', error);
       res.status(500).json({ error: 'Failed to generate response' });

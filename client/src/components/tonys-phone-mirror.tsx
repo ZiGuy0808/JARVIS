@@ -251,6 +251,35 @@ interface PhoneMirrorProps {
     onNotification?: (id: string, name: string, message: string) => void;
 }
 
+// Helper functions for relationship and anger display
+const getRelationshipInfo = (score: number) => {
+    if (score >= 80) return { name: 'Best Friend', emoji: '❤️', color: 'text-red-500' };
+    if (score >= 60) return { name: 'Close Friend', emoji: '💛', color: 'text-yellow-500' };
+    if (score >= 40) return { name: 'Friend', emoji: '💚', color: 'text-green-500' };
+    if (score >= 20) return { name: 'Acquaintance', emoji: '💙', color: 'text-blue-500' };
+    return { name: 'Distant', emoji: '⚪', color: 'text-gray-500' };
+};
+
+const getAngerInfo = (anger: number) => {
+    if (anger >= 90) return { status: 'CRITICAL', color: 'bg-red-600', barColor: 'from-red-500 to-red-700', warning: true };
+    if (anger >= 70) return { status: 'Dangerous', color: 'bg-orange-500', barColor: 'from-orange-400 to-red-500', warning: true };
+    if (anger >= 50) return { status: 'Agitated', color: 'bg-yellow-500', barColor: 'from-yellow-400 to-orange-500', warning: false };
+    if (anger >= 30) return { status: 'Tense', color: 'bg-lime-500', barColor: 'from-lime-400 to-yellow-500', warning: false };
+    return { status: 'Calm', color: 'bg-green-500', barColor: 'from-green-400 to-green-600', warning: false };
+};
+
+// Default relationship scores (existing relationships)
+const DEFAULT_RELATIONSHIPS: Record<string, number> = {
+    pepper: 95,   // Wife - Best Friend
+    peter: 70,    // Mentee - Close Friend
+    happy: 75,    // Long-time friend
+    steve: 45,    // Complicated - Friend
+    rhodey: 90,   // Best friend since MIT
+    natasha: 55,  // Colleague - Friend
+    fury: 35,     // Professional - Acquaintance
+    bruce: 80,    // Science Bro - Close Friend
+};
+
 export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirrorProps) {
     const [connecting, setConnecting] = useState(true);
     const [connectionProgress, setConnectionProgress] = useState(0);
@@ -271,6 +300,90 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
     const messageCountRef = useRef<number>(0); // Track message count for realistic timing
     const currentContactIdRef = useRef<string | null>(null); // Track current contact for async validation
     const isOpenRef = useRef(isOpen); // Track visibility for async callbacks
+
+    // ========== NEW: Anger & Relationship Tracking ==========
+    const [angerLevels, setAngerLevels] = useState<Record<string, number>>(() => {
+        try {
+            const saved = localStorage.getItem('jarvis-phone-anger');
+            return saved ? JSON.parse(saved) : { bruce: 0 };
+        } catch { return { bruce: 0 }; }
+    });
+
+    const [relationshipLevels, setRelationshipLevels] = useState<Record<string, number>>(() => {
+        try {
+            const saved = localStorage.getItem('jarvis-phone-relationships');
+            return saved ? JSON.parse(saved) : DEFAULT_RELATIONSHIPS;
+        } catch { return DEFAULT_RELATIONSHIPS; }
+    });
+
+    const [hulkOutState, setHulkOutState] = useState<{ active: boolean; cooldownUntil: number }>(() => {
+        try {
+            const saved = localStorage.getItem('jarvis-phone-hulkout');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Check if cooldown has expired
+                if (parsed.cooldownUntil && Date.now() > parsed.cooldownUntil) {
+                    return { active: false, cooldownUntil: 0 };
+                }
+                return parsed;
+            }
+        } catch { }
+        return { active: false, cooldownUntil: 0 };
+    });
+
+    const [showHulkOutAnimation, setShowHulkOutAnimation] = useState(false);
+
+    // Persist anger levels
+    useEffect(() => {
+        localStorage.setItem('jarvis-phone-anger', JSON.stringify(angerLevels));
+    }, [angerLevels]);
+
+    // Persist relationship levels
+    useEffect(() => {
+        localStorage.setItem('jarvis-phone-relationships', JSON.stringify(relationshipLevels));
+    }, [relationshipLevels]);
+
+    // Persist hulk-out state
+    useEffect(() => {
+        localStorage.setItem('jarvis-phone-hulkout', JSON.stringify(hulkOutState));
+    }, [hulkOutState]);
+
+    // Check if hulk-out cooldown has expired
+    useEffect(() => {
+        if (hulkOutState.active && hulkOutState.cooldownUntil) {
+            const timeLeft = hulkOutState.cooldownUntil - Date.now();
+            if (timeLeft <= 0) {
+                // Cooldown expired, reset
+                setHulkOutState({ active: false, cooldownUntil: 0 });
+                setAngerLevels(prev => ({ ...prev, bruce: 0 }));
+            } else {
+                // Set timer to auto-reset when cooldown expires
+                const timer = setTimeout(() => {
+                    setHulkOutState({ active: false, cooldownUntil: 0 });
+                    setAngerLevels(prev => ({ ...prev, bruce: 0 }));
+                }, timeLeft);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [hulkOutState]);
+
+    // Trigger Hulk-out sequence
+    const triggerHulkOut = useCallback(() => {
+        console.log('[PHONE] 💥 HULK OUT TRIGGERED!');
+        setShowHulkOutAnimation(true);
+
+        // Set cooldown for 5 minutes
+        const cooldownTime = Date.now() + 5 * 60 * 1000;
+        setHulkOutState({ active: true, cooldownUntil: cooldownTime });
+
+        // Hide animation after 4 seconds
+        setTimeout(() => {
+            setShowHulkOutAnimation(false);
+            setSelectedContact(null); // Boot user out of chat
+        }, 4000);
+    }, []);
+
+    // ========== END NEW ==========
 
     useEffect(() => {
         isOpenRef.current = isOpen;
@@ -692,39 +805,71 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
             const originalContactName = data._originalContactName;
             const messages = data.messages || [data.response];
 
+            // ========== NEW: Process anger and relationship deltas ==========
+            const angerDelta = data.angerDelta || 0;
+            const relationshipDelta = data.relationshipDelta || 0;
+
+            // Update relationship level
+            if (relationshipDelta !== 0) {
+                setRelationshipLevels(prev => {
+                    const current = prev[originalContactId] || 50;
+                    const newLevel = Math.max(0, Math.min(100, current + relationshipDelta));
+                    console.log(`[PHONE] ${originalContactName} relationship: ${current} → ${newLevel} (${relationshipDelta > 0 ? '+' : ''}${relationshipDelta})`);
+                    return { ...prev, [originalContactId]: newLevel };
+                });
+            }
+
+            // Update anger level (Bruce only for now)
+            if (originalContactId === 'bruce' && angerDelta !== 0) {
+                setAngerLevels(prev => {
+                    const current = prev.bruce || 0;
+                    const newAnger = Math.max(0, Math.min(100, current + angerDelta));
+                    console.log(`[PHONE] 🟢 Bruce anger: ${current}% → ${newAnger}% (${angerDelta > 0 ? '+' : ''}${angerDelta})`);
+
+                    // Check for HULK OUT!
+                    if (newAnger >= 100 && !hulkOutState.active) {
+                        console.log('[PHONE] 💥 ANGER HIT 100% - TRIGGERING HULK OUT!');
+                        // Delay trigger slightly to let messages appear first
+                        setTimeout(() => triggerHulkOut(), 2000);
+                    }
+
+                    return { ...prev, bruce: newAnger };
+                });
+            }
+            // ========== END NEW ==========
+
             // Clear any follow-up timer
             if (followUpTimerRef.current) {
                 clearTimeout(followUpTimerRef.current);
             }
 
-            // Realistic response timing - character specific
+            // Realistic response timing - OPTIMIZED for natural feel
+            // First few messages have slightly longer delay, then speeds up
             let minDelay, maxDelay;
 
             if (originalContactId === 'peter') {
-                // Spider-Man is ALWAYS eager to reply
-                if (messageCountRef.current < 2) {
-                    minDelay = 5000;   // 5 seconds minimum
-                    maxDelay = 20000;  // 20 seconds maximum
-                } else {
-                    minDelay = 2000;   // 2 seconds
-                    maxDelay = 10000;  // 10 seconds
-                }
+                // Spider-Man is ALWAYS eager to reply - instant responses
+                minDelay = 1000;   // 1 second
+                maxDelay = 5000;   // 5 seconds max
             } else if (messageCountRef.current < 2) {
-                minDelay = 30000;  // 30 seconds minimum
-                maxDelay = 180000; // 3 minutes maximum
-            } else if (messageCountRef.current < 5) {
-                minDelay = 10000;  // 10 seconds
-                maxDelay = 60000;  // 1 minute
-            } else {
+                // First response - slightly longer but not frustrating
                 minDelay = 5000;   // 5 seconds
-                maxDelay = 30000;  // 30 seconds
+                maxDelay = 15000;  // 15 seconds max
+            } else if (messageCountRef.current < 5) {
+                // Warming up - getting into conversation flow
+                minDelay = 3000;   // 3 seconds
+                maxDelay = 10000;  // 10 seconds
+            } else {
+                // Active conversation - quick exchanges
+                minDelay = 2000;   // 2 seconds
+                maxDelay = 8000;   // 8 seconds
             }
 
             const replyDelay = minDelay + Math.random() * (maxDelay - minDelay);
             console.log(`[PHONE] ${originalContactId} will reply in ${Math.round(replyDelay / 1000)}s...`);
 
-            // Wait before showing typing
-            const typingShowTime = Math.max(1500, replyDelay - 2000);
+            // Show typing indicator EARLY (after 1-2 seconds) so user knows response is coming
+            const typingShowTime = Math.min(1500, replyDelay * 0.3);
             await new Promise(resolve => setTimeout(resolve, typingShowTime));
 
             // Only show typing indicator if still on this contact
@@ -890,27 +1035,70 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                             ) : selectedContact ? (
                                 /* Chat View */
                                 <div className="h-full flex flex-col">
-                                    {/* Chat Header */}
-                                    <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800">
-                                        <button
-                                            onClick={() => setSelectedContact(null)}
-                                            className="p-1 hover:bg-gray-800 rounded-full transition-colors"
-                                        >
-                                            <ChevronLeft className="w-6 h-6 text-blue-500" />
-                                        </button>
-                                        <div className={`w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br ${selectedContact.color} flex-shrink-0 flex items-center justify-center`}>
-                                            <img
-                                                src={selectedContact.avatarUrl}
-                                                alt={selectedContact.realName}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                            />
+                                    {/* Chat Header - Enhanced with relationship and anger indicators */}
+                                    <div className="border-b border-gray-800">
+                                        <div className="flex items-center gap-3 px-4 py-3">
+                                            <button
+                                                onClick={() => setSelectedContact(null)}
+                                                className="p-1 hover:bg-gray-800 rounded-full transition-colors"
+                                            >
+                                                <ChevronLeft className="w-6 h-6 text-blue-500" />
+                                            </button>
+                                            <div className={`w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br ${selectedContact.color} flex-shrink-0 flex items-center justify-center`}>
+                                                <img
+                                                    src={selectedContact.avatarUrl}
+                                                    alt={selectedContact.realName}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-white font-semibold truncate">{selectedContact.nickname}</p>
+                                                    {/* Relationship Badge */}
+                                                    <span className={`text-sm ${getRelationshipInfo(relationshipLevels[selectedContact.id] || 50).color}`}>
+                                                        {getRelationshipInfo(relationshipLevels[selectedContact.id] || 50).emoji}
+                                                    </span>
+                                                </div>
+                                                <p className="text-gray-400 text-xs truncate">
+                                                    {getRelationshipInfo(relationshipLevels[selectedContact.id] || 50).name} • {selectedContact.status}
+                                                </p>
+                                            </div>
+                                            <Phone className="w-5 h-5 text-blue-500" />
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-white font-semibold truncate">{selectedContact.nickname}</p>
-                                            <p className="text-gray-400 text-xs truncate">{selectedContact.status}</p>
-                                        </div>
-                                        <Phone className="w-5 h-5 text-blue-500" />
+
+                                        {/* Bruce's Anger Bar */}
+                                        {selectedContact.id === 'bruce' && (
+                                            <motion.div
+                                                className="px-4 pb-2"
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: 'auto' }}
+                                            >
+                                                <div className="flex items-center gap-2 text-xs">
+                                                    <span className="text-gray-500">Anger:</span>
+                                                    <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                                                        <motion.div
+                                                            className={`h-full bg-gradient-to-r ${getAngerInfo(angerLevels.bruce || 0).barColor}`}
+                                                            initial={{ width: 0 }}
+                                                            animate={{ width: `${angerLevels.bruce || 0}%` }}
+                                                            transition={{ duration: 0.5 }}
+                                                        />
+                                                    </div>
+                                                    <span className={`font-mono ${getAngerInfo(angerLevels.bruce || 0).warning ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
+                                                        {Math.round(angerLevels.bruce || 0)}%
+                                                    </span>
+                                                </div>
+                                                {getAngerInfo(angerLevels.bruce || 0).warning && (
+                                                    <motion.p
+                                                        className="text-red-500 text-xs mt-1 text-center"
+                                                        animate={{ opacity: [1, 0.5, 1] }}
+                                                        transition={{ repeat: Infinity, duration: 1 }}
+                                                    >
+                                                        ⚠️ {getAngerInfo(angerLevels.bruce || 0).status} - Don't push him!
+                                                    </motion.p>
+                                                )}
+                                            </motion.div>
+                                        )}
                                     </div>
 
                                     {/* Messages - iOS optimized scrolling */}
@@ -1025,20 +1213,28 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                                                 animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: idx * 0.05 }}
                                                 onClick={() => setSelectedContact(contact)}
-                                                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-900 transition-colors border-b border-gray-800/50"
+                                                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-900 transition-colors border-b border-gray-800/50 ${contact.id === 'bruce' && hulkOutState.active ? 'opacity-50' : ''
+                                                    }`}
                                             >
-                                                <div className={`w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br ${contact.color} flex-shrink-0 flex items-center justify-center`}>
+                                                <div className={`w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br ${contact.color} flex-shrink-0 flex items-center justify-center relative`}>
                                                     <img
                                                         src={contact.avatarUrl}
                                                         alt={contact.realName}
                                                         className="w-full h-full object-cover"
                                                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                                     />
+                                                    {/* Relationship badge on avatar */}
+                                                    <span className="absolute -bottom-0.5 -right-0.5 text-sm">
+                                                        {getRelationshipInfo(relationshipLevels[contact.id] || 50).emoji}
+                                                    </span>
                                                 </div>
                                                 <div className="flex-1 min-w-0 text-left">
                                                     <p className="text-white font-semibold truncate">{contact.nickname}</p>
                                                     <p className="text-gray-400 text-sm truncate">
-                                                        {contactPreviews[contact.id]?.text || contact.history[contact.history.length - 1].text}
+                                                        {contact.id === 'bruce' && hulkOutState.active
+                                                            ? '📵 Unavailable - Phone destroyed'
+                                                            : (contactPreviews[contact.id]?.text || contact.history[contact.history.length - 1].text)
+                                                        }
                                                     </p>
                                                 </div>
                                                 <div className="text-gray-500 text-xs flex-shrink-0">
@@ -1061,9 +1257,108 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                         >
                             <X className="w-4 h-4 text-red-400" />
                         </button>
+
+                        {/* ========== HULK OUT ANIMATION OVERLAY ========== */}
+                        <AnimatePresence>
+                            {showHulkOutAnimation && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="absolute inset-0 z-50 flex flex-col items-center justify-center overflow-hidden"
+                                >
+                                    {/* Green flash background */}
+                                    <motion.div
+                                        className="absolute inset-0 bg-green-500"
+                                        animate={{
+                                            opacity: [0, 1, 0.8, 1, 0.5, 0],
+                                            scale: [1, 1.05, 1, 1.1, 1],
+                                        }}
+                                        transition={{ duration: 1.5 }}
+                                    />
+
+                                    {/* Shake effect */}
+                                    <motion.div
+                                        className="absolute inset-0"
+                                        animate={{
+                                            x: [0, -20, 20, -15, 15, -10, 10, -5, 5, 0],
+                                            y: [0, 10, -10, 15, -15, 10, -10, 5, -5, 0],
+                                        }}
+                                        transition={{ duration: 0.8 }}
+                                    />
+
+                                    {/* HULK SMASH text */}
+                                    <motion.div
+                                        className="relative z-10 text-center"
+                                        initial={{ scale: 0, rotate: -20 }}
+                                        animate={{ scale: [0, 1.5, 1], rotate: [-20, 10, 0] }}
+                                        transition={{ duration: 0.5, delay: 0.3 }}
+                                    >
+                                        <h1 className="text-5xl font-black text-white drop-shadow-[0_0_30px_rgba(0,255,0,0.8)]">
+                                            💚 HULK
+                                        </h1>
+                                        <motion.h1
+                                            className="text-6xl font-black text-white drop-shadow-[0_0_30px_rgba(0,255,0,0.8)]"
+                                            animate={{ scale: [1, 1.1, 1] }}
+                                            transition={{ repeat: 3, duration: 0.2 }}
+                                        >
+                                            SMASH! 💥
+                                        </motion.h1>
+                                    </motion.div>
+
+                                    {/* Screen crack overlay */}
+                                    <motion.div
+                                        className="absolute inset-0 z-20 pointer-events-none"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ delay: 0.8 }}
+                                        style={{
+                                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0 L45 30 L20 25 L30 50 L0 60 L35 65 L25 100 L55 70 L60 100 L65 65 L100 75 L70 50 L90 30 L55 35 Z' fill='none' stroke='white' stroke-width='0.5' opacity='0.8'/%3E%3C/svg%3E")`,
+                                            backgroundSize: 'cover',
+                                        }}
+                                    />
+
+                                    {/* Connection lost message */}
+                                    <motion.div
+                                        className="absolute bottom-20 text-center z-30"
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 1.5 }}
+                                    >
+                                        <p className="text-red-500 text-xl font-bold">📵 CONNECTION LOST</p>
+                                        <p className="text-gray-400 text-sm mt-2">The other guy broke the phone...</p>
+                                    </motion.div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* Hulk cooldown overlay (when trying to access Bruce during cooldown) */}
+                        {hulkOutState.active && selectedContact?.id === 'bruce' && !showHulkOutAnimation && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="absolute inset-0 z-40 bg-black/90 flex flex-col items-center justify-center"
+                            >
+                                <div className="text-center px-6">
+                                    <p className="text-6xl mb-4">📵</p>
+                                    <h2 className="text-2xl font-bold text-red-500 mb-2">CONNECTION LOST</h2>
+                                    <p className="text-gray-400 mb-4">Bruce's phone was destroyed during the... incident.</p>
+                                    <p className="text-gray-500 text-sm">
+                                        Available again in: {Math.ceil((hulkOutState.cooldownUntil - Date.now()) / 60000)} minutes
+                                    </p>
+                                    <button
+                                        onClick={() => setSelectedContact(null)}
+                                        className="mt-6 px-6 py-2 bg-gray-800 hover:bg-gray-700 rounded-full text-white transition-colors"
+                                    >
+                                        Back to Messages
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
                     </motion.div>
                 </motion.div>
-            )}
-        </AnimatePresence>
+            )
+            }
+        </AnimatePresence >
     );
 }
