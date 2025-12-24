@@ -909,11 +909,20 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
             await new Promise(resolve => setTimeout(resolve, replyDelay - typingShowTime));
 
             // Build the new messages to add
-            const newMessages = messages.map((text: string) => ({
-                from: originalContactId,
-                text: text,
-                time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-            }));
+            // Handle both formats: string[] (old) or {from, text, time}[] (new group chat)
+            const newMessages = messages.map((item: string | { from: string; text: string; time: string }) => {
+                if (typeof item === 'string') {
+                    // Legacy string format
+                    return {
+                        from: originalContactId,
+                        text: item,
+                        time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                    };
+                } else {
+                    // New object format (from Avengers group chat)
+                    return item;
+                }
+            });
 
             // ALWAYS save to server with the ORIGINAL contact ID (regardless of current view)
             const fullHistory = [...data._originalHistory, ...newMessages];
