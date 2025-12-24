@@ -1060,8 +1060,14 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                                                         {getRelationshipInfo(relationshipLevels[selectedContact.id] || 50).emoji}
                                                     </span>
                                                 </div>
-                                                <p className="text-gray-400 text-xs truncate">
-                                                    {getRelationshipInfo(relationshipLevels[selectedContact.id] || 50).name} • {selectedContact.status}
+                                                <p className="text-xs truncate">
+                                                    {isTyping ? (
+                                                        <span className="text-green-400">Typing...</span>
+                                                    ) : (
+                                                        <span className="text-gray-400">
+                                                            <span className="text-green-400">● Online</span> • {getRelationshipInfo(relationshipLevels[selectedContact.id] || 50).name}
+                                                        </span>
+                                                    )}
                                                 </p>
                                             </div>
                                             <Phone className="w-5 h-5 text-blue-500" />
@@ -1125,14 +1131,22 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                                             </motion.div>
                                         ))}
 
-                                        {/* Delivered status for last Tony message */}
+                                        {/* Delivered/Read status for last Tony message */}
                                         {chatHistory.length > 0 && chatHistory[chatHistory.length - 1].from === 'tony' && (
                                             <motion.div
                                                 initial={{ opacity: 0 }}
                                                 animate={{ opacity: 1 }}
                                                 className="flex justify-end pr-1 mt-0.5 mb-2"
                                             >
-                                                <span className="text-[10px] text-gray-500 font-medium">Delivered</span>
+                                                {isTyping ? (
+                                                    <span className="text-[10px] text-blue-400 font-medium">
+                                                        Read ✓✓
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[10px] text-gray-500 font-medium">
+                                                        Delivered ✓
+                                                    </span>
+                                                )}
                                             </motion.div>
                                         )}
 
