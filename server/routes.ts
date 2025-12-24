@@ -596,18 +596,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
 - You're the calm voice of reason to Tony's chaos
 - Occasionally mention lab results or gamma readings`,
 
-        avengers: `You are the DIRECTOR of the Avengers Group Chat.
-Tony Stark just posted to the group. You must decide who replies.
-Characters available: Steve, Peter, Natasha, Rhodey, Happy, Bruce, Fury.
-Rules:
-- You are NOT one person. You are simulating a room.
-- Characters should talk to each other, not just to Tony.
-- If Peter says something dumb, maybe Happy keeps him in check.
-- Keep it chaotic and fun, like a real group chat.
-- FORMAT: Start every message with the character's name in brackets, e.g. [Steve]: Language!`
+        avengers: `You are the ARCHITECT of the 'Avengers Assembly' Group Chat.
+Tony Stark just posted to the group. You must control the other characters to respond naturally.
+
+*** CHARACTER PROFILES (STRICTLY ADHERE TO THESE VOICES) ***
+[Peter Parker]: Excited, calls him "Mr. Stark", overshares, uses emojis!! TERRIBLE at secrets.
+[Steve Rogers]: Formal, moral, confused by tech, disproves of language.
+[Natasha Romanoff]: Sarcastic, brief, cool, treats Tony like a child.
+[Rhodey]: Tony's best friend, mocks him, military humor ("War Machine").
+[Bruce Banner]: Nervous, polite, science bro, avoids Hulk stress.
+[Nick Fury]: Angry, impatient, commands respect, wants results.
+[Happy Hogan]: Grumpy, hates Peter's spam, loyal to Pepper/Tony.
+[Pepper Potts]: Responsible, sensible, loves Tony but manages his chaos.
+
+*** DIRECTOR RULES ***
+1. SIMULATE A ROOM: Characters should reply to *each other* as much as to Tony.
+2. CHAIN REACTIONS: If Peter says something dumb, Happy should scold him. If Steve is serious, Tony (or Rhodey) should mock him.
+3. CHAOS: This is a group chat. People talk over each other.
+4. FORMAT: Start every message with [Name]: Content.
+   Example:
+   [Peter]: Mr Stark look!!! 🕷️
+   [Happy]: Kid, get off the channel.
+   [Steve]: Be nice to the boy, Happy.`
       };
 
-      const systemPrompt = characterPrompts[characterId] || characterPrompts['peter'];
+      let systemPrompt = characterPrompts[characterId];
+      if (!systemPrompt) systemPrompt = characterPrompts['peter'];
+
+      // *** AVENGERS GLOBAL INTELLIGENCE INJECTION ***
+      if (characterId === 'avengers') {
+        // 1. Inject Private Chat Context (Hive Mind)
+        let globalGossip = "\n\n*** PRIVATE INTELLIGENCE (WHAT CHARACTERS KNOW FROM DM's) ***\n";
+        Object.entries(phoneChatHistory).forEach(([cid, history]) => {
+          if (cid !== 'avengers' && Array.isArray(history) && history.length > 0) {
+            // Get last 10 interactions (Deep Context)
+            // We have plenty of token space (128k limit), so we can afford ~5-10 messages per character
+            const recent = history.slice(-10);
+            globalGossip += `[${cid.toUpperCase()} Private Thread History]: ${JSON.stringify(recent)}\n`;
+          }
+        });
+
+        // 2. Inject Relationship Levels
+        // Frontend sends 'relationshipLevel' as a single number usually, but for avengers we expect a map or we can assume defaults if missing
+        // To support the user's request, we'll try to parse if relationshipLevel is an object
+        let relationships = "\n*** CURRENT RELATIONSHIP STATUSES ***\n";
+        const reqRel = req.body.relationshipLevel;
+        if (typeof reqRel === 'object') {
+          Object.entries(reqRel).forEach(([cid, level]) => {
+            relationships += `[${cid}]: ${level}/100\n`;
+          });
+        } else {
+          relationships += "(No live relationship data available, assume neutral)\n";
+        }
+
+        systemPrompt += globalGossip;
+        systemPrompt += relationships;
+        systemPrompt += "\n*** INSTRUCTION: Use the PRIVATE INTELLIGENCE. If Peter told Tony a secret in DMs, maybe he accidentally mentions it here. If Tony was mean to Steve in DMs, Steve should be cold here. ***";
+      }
 
       // Dynamic elements to make each message unique
       const moods = ['curious', 'slightly anxious', 'playfully annoyed', 'genuinely concerned', 'casual', 'impatient', 'amused', 'sarcastic'];
@@ -795,16 +840,31 @@ Hey Tony, that's hilarious. ||| serious though, stop it.
         const rawSegments = finalResponse.split('|||');
 
         rawSegments.forEach(segment => {
-          const match = segment.match(/\[(.*?)(?:\]|:)\s*(.*)/); // Matches [Name]: Message or [Name] Message
+          // More robust regex: matches [Name], Name:, or [Name]:
+          // also handles potential spaces inside brackets
+          const match = segment.match(/(?:\[(.*?)]|(.*?):)\s*(.*)/);
+
           if (match) {
-            const name = match[1].toLowerCase().trim(); // e.g. "steve"
-            const text = match[2].trim();
+            // Match group 1 is bracketed content, group 2 is colon content
+            const rawName = (match[1] || match[2] || "").trim();
+            const text = match[3].trim();
+
+            if (!rawName || !text) return; // Skip malformed
+
+            const name = rawName.toLowerCase();
+
             // Map name to valid ID if needed (e.g. 'cap' -> 'steve')
             let fromId = name;
             if (fromId.includes('cap')) fromId = 'steve';
+            if (fromId.includes('rogers')) fromId = 'steve';
             if (fromId.includes('spider')) fromId = 'peter';
+            if (fromId.includes('parker')) fromId = 'peter';
             if (fromId.includes('widow')) fromId = 'natasha';
+            if (fromId.includes('romanoff')) fromId = 'natasha';
             if (fromId.includes('hulk')) fromId = 'bruce';
+            if (fromId.includes('banner')) fromId = 'bruce';
+            if (fromId.includes('stark')) fromId = 'tony'; // Self-reference case
+            if (fromId.includes('iron')) fromId = 'tony';
 
             multiUserMessages.push({
               from: fromId,
@@ -1059,18 +1119,71 @@ Generate 1-2 follow-up messages.
       const { response } = await callCerebras(fullPrompt, [], undefined, undefined, '');
 
       // Parse response for multiple messages
-      const messages = response.split('|||').map(m => m.trim()).filter(m => m.length > 0);
+      // Special handling for Avengers Group Chat (Multi-user parsing)
+      let finalMessages: { from: string; text: string; time: string }[] = [];
+
+      if (characterId === 'avengers') {
+        // Expected format: "[Steve]: Hello ||| [Peter]: Hi guys"
+        const rawSegments = response.split('|||');
+
+        rawSegments.forEach(segment => {
+          // More robust regex: matches [Name], Name:, or [Name]:
+          const match = segment.match(/(?:\[(.*?)]|(.*?):)\s*(.*)/);
+
+          if (match) {
+            const rawName = (match[1] || match[2] || "").trim();
+            const text = match[3].trim();
+
+            if (!rawName || !text) return;
+
+            const name = rawName.toLowerCase();
+            let fromId = name;
+            if (fromId.includes('cap')) fromId = 'steve';
+            if (fromId.includes('rogers')) fromId = 'steve';
+            if (fromId.includes('spider')) fromId = 'peter';
+            if (fromId.includes('parker')) fromId = 'peter';
+            if (fromId.includes('widow')) fromId = 'natasha';
+            if (fromId.includes('romanoff')) fromId = 'natasha';
+            if (fromId.includes('hulk')) fromId = 'bruce';
+            if (fromId.includes('banner')) fromId = 'bruce';
+            if (fromId.includes('stark')) fromId = 'tony';
+            if (fromId.includes('iron')) fromId = 'tony';
+
+            finalMessages.push({
+              from: fromId,
+              text: text,
+              time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+            });
+          } else {
+            if (segment.trim()) {
+              finalMessages.push({
+                from: 'jarvis',
+                text: segment.trim(),
+                time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+              });
+            }
+          }
+        });
+      } else {
+        // Standard single-character parsing
+        const parsedTexts = response.split('|||').map(m => m.trim()).filter(m => m.length > 0);
+        finalMessages = parsedTexts.map(text => ({
+          from: characterId,
+          text,
+          time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+        }));
+      }
 
       // Save to chat history
       const existingHistory = phoneChatHistory[characterId] || [];
-      const newMessages = messages.map(text => ({
-        from: characterId,
-        text,
-        time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      const newMessages = finalMessages.map(msg => ({
+        from: msg.from,
+        text: msg.text,
+        time: msg.time
       }));
       phoneChatHistory[characterId] = [...existingHistory, ...newMessages];
 
-      res.json({ messages });
+      res.json({ messages: newMessages });
     } catch (error) {
       console.error('Phone followup error:', error);
       res.status(500).json({ error: 'Failed to generate follow-up' });

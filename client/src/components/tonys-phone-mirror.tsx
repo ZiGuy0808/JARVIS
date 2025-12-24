@@ -813,7 +813,10 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                 message,
                 context: currentHistory.slice(-50).map(m => `${m.from === 'tony' ? 'Tony' : originalContactName}: ${m.text}`).join('\n'),
                 // Send current relationship level so AI knows how to act
-                relationshipLevel: relationshipLevels[originalContactId] || DEFAULT_RELATIONSHIPS[originalContactId] || 50,
+                // For Avengers group chat, send the entire object so 'Hive Mind' works
+                relationshipLevel: originalContactId === 'avengers'
+                    ? relationshipLevels
+                    : (originalContactId ? (relationshipLevels[originalContactId] || DEFAULT_RELATIONSHIPS[originalContactId] || 50) : 50),
                 // Send anger level (for Bruce)
                 angerLevel: originalContactId === 'bruce' ? (angerLevels?.bruce || 0) : 0
             });
@@ -1153,14 +1156,31 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                                                 initial={{ opacity: 0, y: 10 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ delay: idx * 0.02 }}
-                                                className={`flex ${msg.from === 'tony' ? 'justify-end' : 'justify-start'}`}
+                                                className={`flex ${msg.from === 'tony' ? 'justify-end' : 'justify-start items-end gap-2'}`}
                                             >
+                                                {/* Avatar for group chats */}
+                                                {msg.from !== 'tony' && selectedContact?.id === 'avengers' && (
+                                                    <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 border border-white/20">
+                                                        <img
+                                                            src={CONTACTS.find(c => c.id === msg.from)?.avatarUrl || selectedContact.avatarUrl}
+                                                            alt={msg.from}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </div>
+                                                )}
+
                                                 <div
                                                     className={`max-w-[80%] px-3 py-1.5 rounded-2xl text-[15px] leading-tight ${msg.from === 'tony'
                                                         ? 'bg-blue-500 text-white rounded-br-md'
                                                         : 'bg-gray-800 text-white rounded-bl-md'
                                                         }`}
                                                 >
+                                                    {/* Name tag in group chat */}
+                                                    {selectedContact?.id === 'avengers' && msg.from !== 'tony' && (
+                                                        <p className="text-[10px] text-gray-400 font-bold mb-0.5 uppercase">
+                                                            {CONTACTS.find(c => c.id === msg.from)?.nickname.split(' ')[0] || msg.from}
+                                                        </p>
+                                                    )}
                                                     {/* Photo Attachment Parsing */}
                                                     {(msg.text.includes('[Photo:') || msg.text.includes('[Selfie:')) ? (
                                                         <div className="flex flex-col gap-2 mb-1">
