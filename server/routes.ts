@@ -1048,7 +1048,32 @@ Hey Tony, that's hilarious. ||| serious though, stop it.
 - Anxious but trying not to be
 - Might mention lab work or calculations
 - Gentle reminders, not pushy
-- Could mention needing to stay calm ("you know how the other guy gets")`
+- Could mention needing to stay calm ("you know how the other guy gets")`,
+
+        avengers: `You are the DIRECTOR of the Avengers Group Chat. Tony Stark has gone quiet.
+The other Avengers should continue chatting WITH EACH OTHER. This is NOT about pinging Tony.
+
+*** CHARACTER PROFILES (STRICTLY ADHERE TO THESE VOICES) ***
+[Peter Parker]: Excited, "Mr. Stark", overshares, emojis, TERRIBLE at secrets.
+[Steve Rogers]: Formal, moral, confused by tech, disapproves of language.
+[Natasha Romanoff]: Sarcastic, brief, cool, treats everyone like children.
+[Rhodey]: Military humor, mocks people, loyal.
+[Bruce Banner]: Nervous, polite, avoids stress.
+[Happy Hogan]: Grumpy, hates Peter's spam.
+[Pepper Potts]: Responsible, manages chaos.
+
+*** AUTONOMOUS BANTER RULES ***
+1. Generate 2-4 messages of characters talking TO EACH OTHER (not to Tony).
+2. TOPICS: They can discuss missions, complain about Tony, share news, argue about movies, etc.
+3. IF TONY HAS BEEN GONE A WHILE: One character might say "Where IS Tony?" or "Think he's ignoring us?"
+4. DYNAMIC FLOW: If one subject dies, SMOOTHLY transition to another. Example: Peter mentions a movie → Steve doesn't get the reference → Natasha explains sarcastically.
+5. FORMAT: [Name]: Message ||| [Name]: Message
+
+*** EXAMPLE OUTPUT ***
+[Peter]: Has anyone seen Mr. Stark? He's been quiet...
+[Happy]: Good. Peace and quiet for once.
+[Steve]: Happy, that's not very teamwork-oriented.
+[Natasha]: Steve, it's a joke. Relax, grandpa.`
       };
 
       const behavior = followUpBehavior[characterId] || followUpBehavior['peter'];
@@ -1087,7 +1112,31 @@ Hey Tony, that's hilarious. ||| serious though, stop it.
       const { getTonyActivity } = await import('./lib/tony-activity');
       const currentActivity = getTonyActivity();
 
-      const fullPrompt = `You are roleplaying as ${characterName} from the Marvel Cinematic Universe (Earth-616).
+      // Build prompt - special handling for Avengers autonomous banter
+      let fullPrompt: string;
+
+      if (characterId === 'avengers') {
+        // Avengers get the autonomous banter prompt
+        fullPrompt = `${behavior}
+
+*** CURRENT SITUATION ***
+- Tony has been silent for: ${timeDescription}
+- Current time context: ${timeContext}
+- Tony's last known activity: ${currentActivity.activity} in ${currentActivity.location}
+
+*** RECENT CHAT HISTORY ***
+${context || '(Chat just started)'}
+
+*** YOUR TASK ***
+Generate 2-4 messages of the Avengers chatting WITH EACH OTHER.
+- They should NOT just be asking where Tony is (unless it's been a while).
+- They can discuss anything: missions, movies, food, complaints, jokes.
+- STAY IN CHARACTER for each person.
+- Use the ||| separator between messages.
+`;
+      } else {
+        // Standard single-character follow-up
+        fullPrompt = `You are roleplaying as ${characterName} from the Marvel Cinematic Universe (Earth-616).
 Tony Stark hasn't replied to your texts for ${timeDescription}.
 
 *** INTELLIGENCE PROTOCOLS ***
@@ -1115,6 +1164,7 @@ Generate 1-2 follow-up messages.
 - Separate messages with "|||".
 - Be short, natural, text-like.
 `;
+      }
 
       const { response } = await callCerebras(fullPrompt, [], undefined, undefined, '');
 
