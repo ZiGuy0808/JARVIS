@@ -729,7 +729,7 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
             const messages = response.messages || [];
 
             // Add messages to chat with realistic delays
-            for (const text of messages) {
+            for (const item of messages) {
                 // VALIDATE before each message
                 if (currentContactIdRef.current !== originalContactId) {
                     console.log(`[PHONE] Message discarded mid-stream - contact changed`);
@@ -743,9 +743,20 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                 // Final validation before adding
                 if (currentContactIdRef.current !== originalContactId) return;
 
+                // Handle both string and object formats
+                let senderId = originalContactId;
+                let messageText = '';
+
+                if (typeof item === 'string') {
+                    messageText = item;
+                } else {
+                    senderId = item.from;
+                    messageText = item.text;
+                }
+
                 setChatHistory(prev => [...prev, {
-                    from: originalContactId,
-                    text: text,
+                    from: senderId,
+                    text: messageText,
                     time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
                 }]);
             }
