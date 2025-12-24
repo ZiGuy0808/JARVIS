@@ -198,6 +198,25 @@ const CONTACTS = [
             { from: 'bruce', text: "Only 400? I did 5000.", time: '2:35 PM' },
             { from: 'tony', text: "Overachiever. Fine, bring your data over.", time: '2:35 PM' },
         ]
+    },
+    {
+        id: 'avengers',
+        nickname: 'Avengers Assembly 🅰️',
+        realName: 'Avengers',
+        avatarUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Avengers_logo_2011.svg/1200px-Avengers_logo_2011.svg.png', // Temporary placeholder
+        status: 'Earth\'s Mightiest Heroes',
+        color: 'from-blue-800 to-red-600',
+        spamLevel: 'medium',
+        history: [
+            { from: 'steve', text: "Avengers Assemble.", time: '8:00 AM' },
+            { from: 'tony', text: "Can we assemble after coffee?", time: '8:02 AM' },
+            { from: 'natasha', text: "Rogers, stop shouting.", time: '8:03 AM' },
+            { from: 'peter', text: "OMG I'm in the group chat!!! Hi everyone!!", time: '8:04 AM' },
+            { from: 'rhodey', text: "Who let the kid in?", time: '8:05 AM' },
+            { from: 'tony', text: "He hacked it. I'm actually impressed.", time: '8:05 AM' },
+            { from: 'peter', text: "I didn't hack it Mr Stark, I just guessed the password was 'Password123'", time: '8:06 AM' },
+            { from: 'tony', text: "...I need to change my password.", time: '8:06 AM' }
+        ]
     }
 ];
 
@@ -792,7 +811,11 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                 characterId: originalContactId,
                 characterName: originalContactName,
                 message,
-                context: currentHistory.slice(-50).map(m => `${m.from === 'tony' ? 'Tony' : originalContactName}: ${m.text}`).join('\n')
+                context: currentHistory.slice(-50).map(m => `${m.from === 'tony' ? 'Tony' : originalContactName}: ${m.text}`).join('\n'),
+                // Send current relationship level so AI knows how to act
+                relationshipLevel: relationshipLevels[originalContactId] || DEFAULT_RELATIONSHIPS[originalContactId] || 50,
+                // Send anger level (for Bruce)
+                angerLevel: originalContactId === 'bruce' ? (angerLevels?.bruce || 0) : 0
             });
 
             // Return the response WITH the original contact info for proper handling
@@ -1138,7 +1161,29 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                                                         : 'bg-gray-800 text-white rounded-bl-md'
                                                         }`}
                                                 >
-                                                    <p className="break-words">{msg.text}</p>
+                                                    {/* Photo Attachment Parsing */}
+                                                    {(msg.text.includes('[Photo:') || msg.text.includes('[Selfie:')) ? (
+                                                        <div className="flex flex-col gap-2 mb-1">
+                                                            <div className="w-full h-32 bg-black/40 rounded-lg flex items-center justify-center border border-white/10 overflow-hidden relative group mt-1">
+                                                                <img
+                                                                    src={`https://source.unsplash.com/random/400x300/?${encodeURIComponent(msg.text.replace(/\[(Photo|Selfie):|\]/g, '').trim())}`}
+                                                                    alt="Attachment"
+                                                                    className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                                                                    onError={(e) => {
+                                                                        // Fallback if unsplash fails or is blocked
+                                                                        e.currentTarget.style.display = 'none';
+                                                                    }}
+                                                                />
+                                                                <span className="relative z-10 text-[10px] italic text-gray-300 bg-black/60 px-2 py-0.5 rounded backdrop-blur-sm">
+                                                                    📷 {msg.text.match(/\[(Photo|Selfie):(.*?)\]/)?.[2]?.trim() || 'Image'}
+                                                                </span>
+                                                            </div>
+                                                            <p className="break-words text-sm">{msg.text.replace(/\[(Photo|Selfie):.*?\]/g, '').trim()}</p>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="break-words">{msg.text}</p>
+                                                    )}
+
                                                     <p className={`text-[10px] mt-0.5 ${msg.from === 'tony' ? 'text-blue-200' : 'text-gray-500'}`}>
                                                         {msg.time}
                                                     </p>

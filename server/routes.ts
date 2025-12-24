@@ -537,6 +537,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 - Keep messages SHORT and send many of them
 - Use lots of exclamation points!!
 - Occasionally mention Aunt May, school, or patrol
+- **SECRET TRAIT**: You are TERRIBLE at keeping secrets. If Tony tells you a secret, you get anxious and might accidentally hint at it or tell Happy/May.
 - IMPORTANT: If you want to send multiple rapid texts, separate them with "|||" (e.g. "Mr Stark!|||Are you there?|||It's urgent!")`,
 
         happy: `You are Happy Hogan texting Tony (Boss). You are:
@@ -593,7 +594,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 - You love talking physics and tech with Tony
 - You worry about "the other guy" (Hulk)
 - You're the calm voice of reason to Tony's chaos
-- Occasionally mention lab results or gamma readings`
+- Occasionally mention lab results or gamma readings`,
+
+        avengers: `You are the DIRECTOR of the Avengers Group Chat.
+Tony Stark just posted to the group. You must decide who replies.
+Characters available: Steve, Peter, Natasha, Rhodey, Happy, Bruce, Fury.
+Rules:
+- You are NOT one person. You are simulating a room.
+- Characters should talk to each other, not just to Tony.
+- If Peter says something dumb, maybe Happy keeps him in check.
+- Keep it chaotic and fun, like a real group chat.
+- FORMAT: Start every message with the character's name in brackets, e.g. [Steve]: Language!`
       };
 
       const systemPrompt = characterPrompts[characterId] || characterPrompts['peter'];
@@ -651,19 +662,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ];
       const styleHint = styleVariations[Math.floor(Math.random() * styleVariations.length)];
 
+      // Get current Tony activity for context
+      const { getTonyActivity } = await import('./lib/tony-activity');
+      const currentActivity = getTonyActivity();
+
       // Get any gossip/context this character might have heard about
       const { getGossipContext, detectGossipRequest, detectCharacterGossip, storeGossip } = await import('./lib/gossip');
       const gossipContext = getGossipContext(characterId);
+
+      // Calculate relationship status description
+      const currentRelationshipScore = req.body.relationshipLevel || 50;
+      let relationshipStatus = "Neutral";
+      if (currentRelationshipScore >= 80) relationshipStatus = "You allow yourself to be vulnerable/loving.";
+      else if (currentRelationshipScore >= 60) relationshipStatus = "Friendly and warm.";
+      else if (currentRelationshipScore >= 40) relationshipStatus = "Professional / Neutral.";
+      else if (currentRelationshipScore >= 20) relationshipStatus = "Cold and distant. Short sentences.";
+      else relationshipStatus = "Hostile. You are angry at him.";
+
+      // HULK/ANGER Logic for Bruce
+      const currentAnger = req.body.angerLevel || 0;
+      let angerInstruction = "";
+      if (characterId === 'bruce') {
+        if (currentAnger > 80) angerInstruction = "🚨 YOU ARE LOSING CONTROL. Write in all caps. Mention 'the other guy' is coming. Be erratic. Example: 'TONY STOP. CAN'T HOLD IT.'";
+        else if (currentAnger > 50) angerInstruction = "⚠️ You are very stressed. Breathe heavy. Short sentences. Warn Tony to stop.";
+        else if (currentAnger > 30) angerInstruction = "You are getting annoyed. Your heart rate is rising. Be tense.";
+      }
 
       const fullPrompt = `You are roleplaying as ${characterName} from the Marvel Cinematic Universe (Earth-616).
 You are purely ${characterName}, texting TONY STARK (Iron Man).
 
 *** INTELLIGENCE PROTOCOLS ***
-1. **KNOWLEDGE**: You have encyclopedic knowledge of the ENTIRE MCU timeline. You know about Thanos, The Blip, Ultron, SHIELD, The Avengers, etc. Use this knowledge naturally.
-2. **CONTEXT**: The chat history below is your MEMORY. Reference it! If Tony mentioned something earlier, bring it up.
-3. **POP CULTURE**: Tony loves movies. If he makes a reference (Star Wars, etc.), you understand it (and react as your character would - e.g. Cap might not get it, Peter loves it).
-4. **RELATIONSHIP**: You have a deep history with Tony. Use it. Be intimate, professional, or antagonistic based on who you are.
+1. **KNOWLEDGE**: You have encyclopedic knowledge of the ENTIRE MCU timeline.
+2. **REAL-TIME AWARENESS**: You know exactly what Tony is doing right now.
+   - **CURRENT LOCATION**: ${currentActivity.location}
+   - **CURRENT ACTIVITY**: ${currentActivity.activity}
+   - **REACTION**: If his activity is dangerous, be worried. If it's ridiculous (e.g. shawarma), be amused. If strictly business, be professional. COMMENT ON THIS if relevant!
+3. **CONTEXT**: The chat history below is your MEMORY. Reference it!
+4. **RELATIONSHIP**: You have a deep history with Tony. Use it.
+   - **CURRENT SCORE**: ${currentRelationshipScore}/100
+   - **YOUR ATTITUDE**: ${relationshipStatus}
+   ${angerInstruction ? `- **ANGER STATE**: ${angerInstruction}` : ''}
 ${gossipContext}
+
+*** VISUAL CONTEXT ***
+ You can "send" images by describing them in brackets, e.g. [Photo: A cute cat] or [Selfie: Me waiting at the tower].
+ Use this sparingly but effectively to make the chat feel real.
 
 *** CHARACTER PROFILE ***
 ${systemPrompt}
@@ -684,26 +727,126 @@ Tony: "${message}"
 Write your reply.
 - STAY IN CHARACTER.
 - Do NOT use flowery AI language. Text like a human.
-- If you are angry, be angry. If you are busy, be brief.
-- Reference the history if needed.
-- If you've heard gossip about something, you can bring it up naturally.
+- Reference Tony's current location/activity naturally.
+
+*** CRITICAL SYSTEM INSTRUCTION ***
+At the very end of your response, you MUST add a hidden JSON block analyzing Tony's message.
+Format:
+<METRICS>
+{
+  "relationship_delta": -5 to +5,
+  "anger_delta": 0 to 20,
+  "gossip": { "target": "pepper|rhodey|etc", "content": "What to tell them" } (OPTIONAL - only if you want to tell someone else)
+  "reason": "Brief reason for scores"
+}
+</METRICS>
+
+Rules for Scoring:
+- Compliments/Apologies: relationship_delta +2 to +5, anger_delta -5
+- Jokes/Banter: relationship_delta +1
+- Insults/Rudeness: relationship_delta -5, anger_delta +10
+- Sensitive Topics: anger_delta +20, relationship_delta -10
+- Bruce Banner Special: If he teases about Hulk, set anger_delta +15.
+
+Rules for Gossip:
+- If Tony tells you something sensitive, or you want to complain about him to someone else, use the "gossip" field.
+- TARGETS: pepper, peter, happy, steve, natasha, rhodey, fury, bruce.
+
+Example Response:
+Hey Tony, that's hilarious. ||| serious though, stop it.
+<METRICS>
+{
+  "relationship_delta": 2,
+  "anger_delta": 0,
+  "gossip": { "target": "pepper", "content": "Tony is making bad jokes again" },
+  "reason": "Tony made a good joke but I should warn Pepper"
+}
+</METRICS>
 `;
 
       const { response } = await callCerebras(fullPrompt, [], undefined, undefined, '');
 
-      // Parse response for multiple messages
-      const messages = response.split('|||').map(m => m.trim()).filter(m => m.length > 0);
+      // Parse Metrics Block
+      let finalResponse = response;
+      let aiMetrics: { relationship_delta: number; anger_delta: number; gossip?: { target: string; content: string } } = { relationship_delta: 0, anger_delta: 0 };
 
-      // Analyze sentiment of Tony's message for relationship/anger tracking
+      // Extract JSON metrics if present
+      const metricsMatch = response.match(/<METRICS>([\s\S]*?)<\/METRICS>/);
+      if (metricsMatch && metricsMatch[1]) {
+        try {
+          const parsed = JSON.parse(metricsMatch[1]);
+          aiMetrics.relationship_delta = parsed.relationship_delta || 0;
+          aiMetrics.anger_delta = parsed.anger_delta || 0;
+          if (parsed.gossip) aiMetrics.gossip = parsed.gossip;
+          // Remove the block from the visible text
+          finalResponse = response.replace(/<METRICS>[\s\S]*?<\/METRICS>/, '').trim();
+        } catch (e) {
+          console.error("Failed to parse AI metrics:", e);
+        }
+      }
+
+      // Parse response for multiple messages (using cleaned response)
+      // Special handling for Avengers Group Chat (Multi-user parsing)
+      let messages: string[] = [];
+      let multiUserMessages: { from: string; text: string; time: string }[] = [];
+
+      if (characterId === 'avengers') {
+        // Expected format: "[Steve]: Hello ||| [Peter]: Hi guys"
+        const rawSegments = finalResponse.split('|||');
+
+        rawSegments.forEach(segment => {
+          const match = segment.match(/\[(.*?)(?:\]|:)\s*(.*)/); // Matches [Name]: Message or [Name] Message
+          if (match) {
+            const name = match[1].toLowerCase().trim(); // e.g. "steve"
+            const text = match[2].trim();
+            // Map name to valid ID if needed (e.g. 'cap' -> 'steve')
+            let fromId = name;
+            if (fromId.includes('cap')) fromId = 'steve';
+            if (fromId.includes('spider')) fromId = 'peter';
+            if (fromId.includes('widow')) fromId = 'natasha';
+            if (fromId.includes('hulk')) fromId = 'bruce';
+
+            multiUserMessages.push({
+              from: fromId,
+              text: text,
+              time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+            });
+          } else {
+            // Fallback for untagged messages in group chat - default to Jarvis/System or assume last speaker
+            if (segment.trim()) {
+              multiUserMessages.push({
+                from: 'jarvis', // Or generic system message
+                text: segment.trim(),
+                time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+              });
+            }
+          }
+        });
+      } else {
+        // Standard single-character parsing
+        messages = finalResponse.split('|||').map(m => m.trim()).filter(m => m.length > 0);
+      }
+
+      // Analyze sentiment (Fallback to Regex, but prioritize AI)
       const { analyzeSentiment } = await import('./lib/sentiment');
-      const sentiment = analyzeSentiment(message, characterId);
+      const regexSentiment = analyzeSentiment(message, characterId);
+
+      // Combine scores: Use AI if non-zero, otherwise fallback to Regex
+      // This allows specific Regex triggers (like 'code words') to still work if AI misses them,
+      // but gives AI the final say on nuance.
+      const finalRelationshipDelta = aiMetrics.relationship_delta !== 0 ? aiMetrics.relationship_delta : regexSentiment.relationshipDelta;
+      // For Anger, we take the maximum to ensure safety (if regex catches a specific trigger AI missed)
+      const finalAngerDelta = Math.max(aiMetrics.anger_delta, regexSentiment.angerDelta);
+
+      // Log the decision
+      console.log(`[AI JUDGE] ${characterId} analysis: Rel=${finalRelationshipDelta} (AI=${aiMetrics.relationship_delta}, Regex=${regexSentiment.relationshipDelta}), Anger=${finalAngerDelta}`);
 
       // For Bruce, check if this would trigger Hulk-out
       // Client tracks cumulative anger, server just provides delta
       let hulkOut = false;
       let hulkResponse = '';
 
-      if (characterId === 'bruce' && sentiment.angerDelta > 15) {
+      if (characterId === 'bruce' && finalAngerDelta > 15) {
         // High anger spike - maybe add warning to response
         const warningPhrases = [
           "Tony... I'm trying to stay calm here.",
@@ -720,6 +863,19 @@ Write your reply.
       }
 
       // ========== GOSSIP SYSTEM ==========
+      // 1. AI Explicit Gossip (High Priority)
+      if (aiMetrics.gossip && aiMetrics.gossip.target && aiMetrics.gossip.content) {
+        storeGossip({
+          from: characterId,
+          about: aiMetrics.gossip.target,
+          content: aiMetrics.gossip.content,
+          timestamp: Date.now(),
+          isFromTony: false
+        });
+        console.log(`[AI GOSSIP] ${characterId} decided to tell ${aiMetrics.gossip.target}: "${aiMetrics.gossip.content}"`);
+      }
+
+      // 2. Regex Checks (Backup / Explicit user requests)
       // Detect if Tony asked this character to pass a message to someone else
       const gossipRequest = detectGossipRequest(message, characterId);
       if (gossipRequest) {
@@ -733,26 +889,35 @@ Write your reply.
         console.log(`[GOSSIP] Tony asked ${characterId} to tell ${gossipRequest.targetCharacter}: "${gossipRequest.content}"`);
       }
 
-      // Detect if the character's response mentions telling someone else
-      const fullResponse = messages.join(' ');
-      const characterGossip = detectCharacterGossip(fullResponse, characterId);
-      for (const gossip of characterGossip) {
-        storeGossip({
-          from: characterId,
-          about: gossip.targetCharacter,
-          content: gossip.content,
-          timestamp: Date.now(),
-          isFromTony: false
-        });
+      // Detect if the character's response mentions telling someone else (Regex Fallback)
+      // Only run if AI didn't already explicitly gossip, to avoid duplicates
+      if (!aiMetrics.gossip) {
+        const fullResponse = messages.join(' ');
+        const characterGossip = detectCharacterGossip(fullResponse, characterId);
+        for (const gossip of characterGossip) {
+          storeGossip({
+            from: characterId,
+            about: gossip.targetCharacter,
+            content: gossip.content,
+            timestamp: Date.now(),
+            isFromTony: false
+          });
+        }
       }
       // ========== END GOSSIP ==========
 
+      // Construct final JSON
+      // If avengers, we use the multiUserMessages array. If normal, we map the string array.
+      const finalMessages = characterId === 'avengers'
+        ? multiUserMessages
+        : messages.map(text => ({ from: characterId, text, time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) }));
+
       res.json({
-        messages,
-        angerDelta: sentiment.angerDelta,
-        relationshipDelta: sentiment.relationshipDelta,
-        detectedMood: sentiment.detectedMood,
-        hulkOut
+        messages: finalMessages,
+        originalResponse: finalResponse,
+        relationshipDelta: finalRelationshipDelta,
+        angerDelta: finalAngerDelta,
+        detectedMood: regexSentiment.detectedMood
       });
     } catch (error) {
       console.error('Phone chat error:', error);
@@ -858,13 +1023,20 @@ Write your reply.
       ];
       const styleHint = styleVariations[Math.floor(Math.random() * styleVariations.length)];
 
+      // Get current Tony activity for context
+      const { getTonyActivity } = await import('./lib/tony-activity');
+      const currentActivity = getTonyActivity();
+
       const fullPrompt = `You are roleplaying as ${characterName} from the Marvel Cinematic Universe (Earth-616).
 Tony Stark hasn't replied to your texts for ${timeDescription}.
 
 *** INTELLIGENCE PROTOCOLS ***
-1. **KNOWLEDGE**: Use your encyclopedic knowledge of the MCU timeline. If the previous chat referenced an event, use that knowledge to make your follow-up specific.
-2. **MEMORY**: The history below is REAL. Do not ignore it. If you asked "Where is the Tesseract?", your follow-up should be "Tony, the Cube? seriously?" not "Are you there?".
-3. **RELATIONSHIP**: Use your specific dynamic with Tony.
+1. **REAL-TIME AWARENESS**: You know exactly what Tony is doing right now.
+   - **CURRENT LOCATION**: ${currentActivity.location}
+   - **CURRENT ACTIVITY**: ${currentActivity.activity}
+   - **USE THIS**: "I know you're busy ${currentActivity.activity}, but answer me!" or "How is the weather in ${currentActivity.location}?"
+2. **KNOWLEDGE**: Use your encyclopedic knowledge of the MCU timeline.
+3. **MEMORY**: The history below is REAL. Do not ignore it.
 
 *** CHARACTER PROFILE ***
 ${behavior}
@@ -879,8 +1051,7 @@ ${context || '(No recent memory - starting fresh)'}
 
 *** INSTRUCTIONS ***
 Generate 1-2 follow-up messages.
-- MUST be related to the Chat Memory.
-- If no memory, start a new relevant topic based on your character.
+- MUST be related to the Chat Memory or his Current Activity.
 - Separate messages with "|||".
 - Be short, natural, text-like.
 `;

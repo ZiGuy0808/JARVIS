@@ -30,8 +30,9 @@ interface CharacterProfile {
 const CHARACTER_PROFILES: Record<string, CharacterProfile> = {
     bruce: {
         // Bruce is VERY hard to anger normally, but has specific triggers
-        baseAngerIncrement: 1, // Very low base anger
-        calmDecay: 5,
+        // UPDATED: Now much harder to calm down once agitated
+        baseAngerIncrement: 3, // Increased from 1 - he gets stressed easier
+        calmDecay: 1, // Reduced from 5 - anger lingers much longer
 
         lovedOnes: [
             {
@@ -69,7 +70,7 @@ const CHARACTER_PROFILES: Record<string, CharacterProfile> = {
             },
             {
                 triggers: ['angry', 'mad', 'rage', 'furious', 'temper'],
-                angerBoost: 12,
+                angerBoost: 15, // Increased sensitivity to being called angry
                 relationshipPenalty: 3,
                 reason: 'Pointing out anger makes it worse'
             },
@@ -82,25 +83,31 @@ const CHARACTER_PROFILES: Record<string, CharacterProfile> = {
         ],
 
         calmTriggers: [
+            // Reduced efficacy of calming words - you have to try harder
             {
                 triggers: ['science', 'research', 'physics', 'lab', 'calculate', 'theory'],
-                angerReduction: 8,
-                relationshipBoost: 3
-            },
-            {
-                triggers: ['friend', 'trust', 'safe', 'okay', 'calm', 'relax', 'breathe'],
-                angerReduction: 6,
+                angerReduction: 4, // Was 8
                 relationshipBoost: 2
             },
             {
+                triggers: ['friend', 'trust', 'safe', 'okay', 'calm', 'relax', 'breathe'],
+                angerReduction: 3, // Was 6 - telling him to relax works less now
+                relationshipBoost: 1
+            },
+            {
                 triggers: ['brilliant', 'genius', 'doctor', 'dr banner', 'smart'],
-                angerReduction: 5,
-                relationshipBoost: 4
+                angerReduction: 3, // Was 5
+                relationshipBoost: 3
             },
             {
                 triggers: ['help', 'need you', 'team', 'together', 'avengers'],
-                angerReduction: 4,
-                relationshipBoost: 3
+                angerReduction: 2, // Was 4
+                relationshipBoost: 2
+            },
+            {
+                triggers: ['sun is getting low', 'lullaby', 'big guy'],
+                angerReduction: 15, // NEW: The specific code phrase is the only big calm trigger
+                relationshipBoost: 5
             }
         ]
     },
