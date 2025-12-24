@@ -717,7 +717,11 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                 characterId: originalContactId,
                 characterName: originalContactName,
                 context,
-                timeSinceLastReply
+                timeSinceLastReply,
+                // Send anger level (for Bruce context in Group Chat)
+                angerLevel: originalContactId === 'avengers'
+                    ? angerLevels
+                    : (originalContactId === 'bruce' ? (angerLevels?.bruce || 0) : 0)
             });
 
             // VALIDATE AGAIN: Check contact hasn't changed after API call
@@ -828,8 +832,10 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                 relationshipLevel: originalContactId === 'avengers'
                     ? relationshipLevels
                     : (originalContactId ? (relationshipLevels[originalContactId] || DEFAULT_RELATIONSHIPS[originalContactId] || 50) : 50),
-                // Send anger level (for Bruce)
-                angerLevel: originalContactId === 'bruce' ? (angerLevels?.bruce || 0) : 0
+                // Send anger level (for Bruce context in Group Chat)
+                angerLevel: originalContactId === 'avengers'
+                    ? angerLevels
+                    : (originalContactId === 'bruce' ? (angerLevels?.bruce || 0) : 0)
             });
 
             // Return the response WITH the original contact info for proper handling

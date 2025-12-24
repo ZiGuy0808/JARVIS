@@ -658,6 +658,27 @@ Example:
 
         systemPrompt += globalGossip;
         systemPrompt += relationships;
+
+        // 3. Inject Bruce Banner's Anger State
+        const reqAnger = req.body.angerLevel;
+        let bruceAnger = 0;
+        if (typeof reqAnger === 'object' && reqAnger !== null) {
+          bruceAnger = reqAnger.bruce || 0;
+        }
+
+        let bruceState = "\n*** BRUCE BANNER STATE ***\n";
+        bruceState += `Current Anger: ${bruceAnger}%\n`;
+        if (bruceAnger > 90) {
+          bruceState += "CRITICAL: HULK IS OUT. Bruce speaks in ALL CAPS, broken sentences. HE IS ANGRY. 'HULK SMASH', 'PUNY STARK'.\n";
+        } else if (bruceAnger > 60) {
+          bruceState += "WARNING: Bruce is losing control. Uses short fragments. 'Can't... hold it...', 'Too... loud...'. Mixed caps.\n";
+        } else if (bruceAnger > 30) {
+          bruceState += "CAUTION: Bruce is stressed. Mentions 'the other guy', asks people to calm down. Nervous tone.\n";
+        } else {
+          bruceState += "NORMAL: Bruce is calm, polite, science bro.\n";
+        }
+
+        systemPrompt += bruceState;
         systemPrompt += "\n*** INSTRUCTION: Use the PRIVATE INTELLIGENCE. If Peter told Tony a secret in DMs, maybe he accidentally mentions it here. If Tony was mean to Steve in DMs, Steve should be cold here. ***";
       }
 
@@ -1123,8 +1144,29 @@ The other Avengers should continue chatting WITH EACH OTHER. This is NOT about p
       let fullPrompt: string;
 
       if (characterId === 'avengers') {
+        // Parse Bruce's Anger for Follow-up
+        const reqAnger = req.body.angerLevel;
+        let bruceAnger = 0;
+        if (typeof reqAnger === 'object' && reqAnger !== null) {
+          bruceAnger = reqAnger.bruce || 0;
+        }
+
+        let bruceState = "\n*** BRUCE BANNER STATE ***\n";
+        bruceState += `Current Anger: ${bruceAnger}%\n`;
+        if (bruceAnger > 90) {
+          bruceState += "CRITICAL: HULK IS OUT. Bruce speaks in ALL CAPS, broken sentences. HE IS ANGRY. 'HULK SMASH'.\n";
+        } else if (bruceAnger > 60) {
+          bruceState += "WARNING: Bruce is losing control. Uses short fragments. 'Can't... hold it...'. Mixed caps.\n";
+        } else if (bruceAnger > 30) {
+          bruceState += "CAUTION: Bruce is stressed. Mentions 'the other guy'. Nervous tone.\n";
+        } else {
+          bruceState += "NORMAL: Bruce is calm, polite, science bro.\n";
+        }
+
         // Avengers get the autonomous banter prompt
         fullPrompt = `${behavior}
+
+${bruceState}
 
 *** CURRENT SITUATION ***
 - Tony has been silent for: ${timeDescription}
