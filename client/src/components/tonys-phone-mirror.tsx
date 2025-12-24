@@ -392,6 +392,9 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
     // Track latest messages for each contact (for the list view) with timestamp for sorting
     const [contactPreviews, setContactPreviews] = useState<Record<string, { text: string; time: string; timestamp: number }>>({});
 
+    // Track unread message count per contact
+    const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});;
+
     // Helper to send character messages with typing simulation
     const sendCharacterMessage = useCallback(async (characterId: string, messages: string[]) => {
         setIsTyping(true);
@@ -935,6 +938,12 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                 for (const msg of newMessages) {
                     await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1500));
                     onNotification?.(originalContactId, originalContactName, msg.text);
+
+                    // Increment unread count for this contact
+                    setUnreadCounts(prev => ({
+                        ...prev,
+                        [originalContactId]: (prev[originalContactId] || 0) + 1
+                    }));
                 }
             }
         },
@@ -1232,7 +1241,11 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                                                 initial={{ opacity: 0, x: -20 }}
                                                 animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: idx * 0.05 }}
-                                                onClick={() => setSelectedContact(contact)}
+                                                onClick={() => {
+                                                    setSelectedContact(contact);
+                                                    // Reset unread count for this contact
+                                                    setUnreadCounts(prev => ({ ...prev, [contact.id]: 0 }));
+                                                }}
                                                 className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-900 transition-colors border-b border-gray-800/50 ${contact.id === 'bruce' && hulkOutState.active ? 'opacity-50' : ''
                                                     }`}
                                             >
@@ -1257,8 +1270,16 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
                                                         }
                                                     </p>
                                                 </div>
-                                                <div className="text-gray-500 text-xs flex-shrink-0">
-                                                    {contactPreviews[contact.id]?.time || contact.history[contact.history.length - 1].time}
+                                                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                                    <span className="text-gray-500 text-xs">
+                                                        {contactPreviews[contact.id]?.time || contact.history[contact.history.length - 1].time}
+                                                    </span>
+                                                    {/* Unread badge */}
+                                                    {unreadCounts[contact.id] > 0 && (
+                                                        <span className="bg-blue-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
+                                                            {unreadCounts[contact.id] > 99 ? '99+' : unreadCounts[contact.id]}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </motion.button>
                                         ))}
