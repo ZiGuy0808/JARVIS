@@ -206,7 +206,7 @@ const CONTACTS = [
         avatarUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Avengers_logo_2011.svg/1200px-Avengers_logo_2011.svg.png', // Temporary placeholder
         status: 'Earth\'s Mightiest Heroes',
         color: 'from-blue-800 to-red-600',
-        spamLevel: 'medium',
+        spamLevel: 'demanding', // Group chat is always buzzing
         history: [
             { from: 'steve', text: "Avengers Assemble.", time: '8:00 AM' },
             { from: 'tony', text: "Can we assemble after coffee?", time: '8:02 AM' },
@@ -321,19 +321,10 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
     const isOpenRef = useRef(isOpen); // Track visibility for async callbacks
 
     // ========== NEW: Anger & Relationship Tracking ==========
-    const [angerLevels, setAngerLevels] = useState<Record<string, number>>(() => {
-        try {
-            const saved = localStorage.getItem('jarvis-phone-anger');
-            return saved ? JSON.parse(saved) : { bruce: 0 };
-        } catch { return { bruce: 0 }; }
-    });
+    // Always start fresh with defaults (no localStorage persistence)
+    const [angerLevels, setAngerLevels] = useState<Record<string, number>>({ bruce: 0 });
 
-    const [relationshipLevels, setRelationshipLevels] = useState<Record<string, number>>(() => {
-        try {
-            const saved = localStorage.getItem('jarvis-phone-relationships');
-            return saved ? JSON.parse(saved) : DEFAULT_RELATIONSHIPS;
-        } catch { return DEFAULT_RELATIONSHIPS; }
-    });
+    const [relationshipLevels, setRelationshipLevels] = useState<Record<string, number>>(DEFAULT_RELATIONSHIPS);
 
     const [hulkOutState, setHulkOutState] = useState<{ active: boolean; cooldownUntil: number }>(() => {
         try {
@@ -352,15 +343,7 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
 
     const [showHulkOutAnimation, setShowHulkOutAnimation] = useState(false);
 
-    // Persist anger levels
-    useEffect(() => {
-        localStorage.setItem('jarvis-phone-anger', JSON.stringify(angerLevels));
-    }, [angerLevels]);
-
-    // Persist relationship levels
-    useEffect(() => {
-        localStorage.setItem('jarvis-phone-relationships', JSON.stringify(relationshipLevels));
-    }, [relationshipLevels]);
+    // Note: Anger and relationships are NOT persisted - fresh start each session
 
     // Persist hulk-out state
     useEffect(() => {
