@@ -622,6 +622,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ];
       const styleHint = styleVariations[Math.floor(Math.random() * styleVariations.length)];
 
+      // Get any gossip/context this character might have heard about
+      const { getGossipContext, detectGossipRequest, detectCharacterGossip, storeGossip } = await import('./lib/gossip');
+      const gossipContext = getGossipContext(characterId);
+
       const fullPrompt = `You are roleplaying as ${characterName} from the Marvel Cinematic Universe (Earth-616).
 You are purely ${characterName}, texting TONY STARK (Iron Man).
 
@@ -630,6 +634,7 @@ You are purely ${characterName}, texting TONY STARK (Iron Man).
 2. **CONTEXT**: The chat history below is your MEMORY. Reference it! If Tony mentioned something earlier, bring it up.
 3. **POP CULTURE**: Tony loves movies. If he makes a reference (Star Wars, etc.), you understand it (and react as your character would - e.g. Cap might not get it, Peter loves it).
 4. **RELATIONSHIP**: You have a deep history with Tony. Use it. Be intimate, professional, or antagonistic based on who you are.
+${gossipContext}
 
 *** CHARACTER PROFILE ***
 ${systemPrompt}
@@ -651,6 +656,7 @@ Write your reply.
 - Do NOT use flowery AI language. Text like a human.
 - If you are angry, be angry. If you are busy, be brief.
 - Reference the history if needed.
+- If you've heard gossip about something, you can bring it up naturally.
 `;
 
       const { response } = await callCerebras(fullPrompt, [], undefined, undefined, '');
@@ -682,6 +688,34 @@ Write your reply.
           messages.push(warningPhrases[Math.floor(Math.random() * warningPhrases.length)]);
         }
       }
+
+      // ========== GOSSIP SYSTEM ==========
+      // Detect if Tony asked this character to pass a message to someone else
+      const gossipRequest = detectGossipRequest(message, characterId);
+      if (gossipRequest) {
+        storeGossip({
+          from: characterId,
+          about: gossipRequest.targetCharacter,
+          content: gossipRequest.content,
+          timestamp: Date.now(),
+          isFromTony: true
+        });
+        console.log(`[GOSSIP] Tony asked ${characterId} to tell ${gossipRequest.targetCharacter}: "${gossipRequest.content}"`);
+      }
+
+      // Detect if the character's response mentions telling someone else
+      const fullResponse = messages.join(' ');
+      const characterGossip = detectCharacterGossip(fullResponse, characterId);
+      for (const gossip of characterGossip) {
+        storeGossip({
+          from: characterId,
+          about: gossip.targetCharacter,
+          content: gossip.content,
+          timestamp: Date.now(),
+          isFromTony: false
+        });
+      }
+      // ========== END GOSSIP ==========
 
       res.json({
         messages,
