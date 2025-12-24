@@ -905,7 +905,13 @@ export function TonysPhoneMirror({ isOpen, onClose, onNotification }: PhoneMirro
 
                 for (const msg of newMessages) {
                     setIsTyping(true);
-                    await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1500));
+
+                    // Peter sends rapid-fire messages! Others take their time.
+                    const messageDelay = originalContactId === 'peter'
+                        ? 200 + Math.random() * 300   // Peter: 200-500ms (rapid spam!)
+                        : 800 + Math.random() * 1500; // Others: 800-2300ms (normal pace)
+
+                    await new Promise(resolve => setTimeout(resolve, messageDelay));
                     setIsTyping(false);
 
                     // Final check before adding to UI
