@@ -602,14 +602,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const moods = ['curious', 'slightly anxious', 'playfully annoyed', 'genuinely concerned', 'casual', 'impatient', 'amused', 'sarcastic'];
       const currentMood = moods[Math.floor(Math.random() * moods.length)];
 
-      // Time of day awareness
+      // Enhanced time of day awareness with character-specific behaviors
       const hour = new Date().getHours();
       let timeContext = '';
-      if (hour < 6) timeContext = "It's very late/early - maybe Tony fell asleep?";
-      else if (hour < 12) timeContext = "It's morning - start of the day.";
-      else if (hour < 17) timeContext = "It's afternoon - busy time.";
-      else if (hour < 21) timeContext = "It's evening - winding down.";
-      else timeContext = "It's late night.";
+      let sleepyModifier = '';
+
+      if (hour >= 23 || hour < 6) {
+        // Late night / very early morning
+        timeContext = `It's ${hour >= 23 ? 'late night' : 'very early morning'} (${hour}:00). Most people are asleep.`;
+
+        // Character-specific late night behaviors
+        const lateNightBehaviors: Record<string, string> = {
+          peter: "You're exhausted but still texting. You have school tomorrow! Mention being tired or that Aunt May would kill you for being up this late.",
+          pepper: "You're worried Tony is up this late. Gently suggest he should sleep. Maybe mention Morgan is asleep.",
+          happy: "You're grumpy about being woken up. Keep responses very short and annoyed.",
+          steve: "You're an early riser, so if it's 5-6am you're awake, otherwise you politely mention it's late.",
+          rhodey: "Military discipline - you're either sound asleep or wide awake for a mission. Brief responses.",
+          natasha: "You never really sleep. Night is when the real work happens. More mysterious than usual.",
+          fury: "You're always awake. 'I'll sleep when I'm dead, Stark.'",
+          bruce: "You have insomnia sometimes. You might be doing late night research. Calm, contemplative."
+        };
+        sleepyModifier = lateNightBehaviors[characterId] || "It's late. Keep responses brief and possibly tired.";
+
+      } else if (hour < 9) {
+        timeContext = "It's early morning. Coffee time.";
+        sleepyModifier = characterId === 'peter' ? "You're rushing to get ready for school!" : "";
+      } else if (hour < 12) {
+        timeContext = "It's mid-morning. Productive time.";
+      } else if (hour < 14) {
+        timeContext = "It's around lunch time.";
+      } else if (hour < 17) {
+        timeContext = "It's afternoon.";
+      } else if (hour < 20) {
+        timeContext = "It's evening.";
+        sleepyModifier = characterId === 'pepper' ? "Dinner time - maybe remind Tony about family dinner?" : "";
+      } else {
+        timeContext = "It's late evening, winding down for the night.";
+      }
 
       // Random message style variations
       const styleVariations = [
@@ -642,6 +671,7 @@ ${systemPrompt}
 *** CURRENT CONTEXT ***
 - Mood: ${currentMood}
 - Time: ${timeContext}
+${sleepyModifier ? `- TIME BEHAVIOR: ${sleepyModifier}` : ''}
 - Action Hint: ${styleHint}
 
 *** CHAT HISTORY ***
